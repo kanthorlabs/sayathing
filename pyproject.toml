@@ -1,0 +1,12 @@
+[project]
+name = "sayathing"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "kokoro>=0.9.4",
+    "soundfile>=0.13.1",
+    "pip>=24.0",
+    "misaki[en]>=0.9.4",
+]
