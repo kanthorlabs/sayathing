@@ -1,4 +1,8 @@
 from fastapi import FastAPI
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 # OpenAPI metadata
 def create_app() -> FastAPI:
@@ -53,5 +57,41 @@ def create_app() -> FastAPI:
             },
         ]
     )
+    
+    @app.on_event("startup")
+    async def startup_event():
+        """Initialize TTS engines asynchronously on startup"""
+        try:
+            logger.info("Starting async TTS engine preloading...")
+            
+            # Log async configuration
+            try:
+                from .async_config import AsyncConfig
+                AsyncConfig.log_config()
+            except ImportError:
+                logger.info("Using default async configuration")
+            
+            from tts import Engine
+            await Engine.preload_async()
+            logger.info("TTS engines preloaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to preload TTS engines: {e}")
+            raise  # Re-raise to prevent startup if engines fail to load
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Cleanup resources on shutdown"""
+        try:
+            logger.info("Shutting down TTS engines...")
+            from tts.kokoro_engine import KokoroEngine
+            
+            # Shutdown the thread pool executor
+            if KokoroEngine._executor is not None:
+                logger.info("Shutting down TTS thread pool executor...")
+                KokoroEngine._executor.shutdown(wait=True, cancel_futures=True)
+                logger.info("TTS thread pool executor shut down successfully")
+                
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}")
     
     return app

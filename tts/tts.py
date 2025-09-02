@@ -1,4 +1,5 @@
 import base64
+import asyncio
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field, field_serializer, ConfigDict
 from enum import Enum
@@ -20,7 +21,7 @@ class TextToSpeechRequest(BaseModel):
     voice_id: str = Field(
         ...,
         description="The voice identifier to use for synthesis. Use /voices endpoint to get available options.",
-        example="kokoro.af-heart"
+        example="kokoro.af_heart"
     )
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
@@ -32,7 +33,7 @@ class TextToSpeechRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "text": "Hello, world! This is a test of the text-to-speech system.",
-                "voice_id": "kokoro.af-heart",
+                "voice_id": "kokoro.af_heart",
                 "metadata": {
                     "session_id": "demo_session_123",
                     "timestamp": "2025-09-02T12:00:00Z"
@@ -41,9 +42,10 @@ class TextToSpeechRequest(BaseModel):
         }
     )
 
-    def execute(self) -> 'TextToSpeechResponse':
+    async def execute_async(self) -> 'TextToSpeechResponse':
+        """Asynchronous execution for better performance"""
         engine = Engine.from_voice_id(self.voice_id)
-        audio = engine.generate(self.text, self.voice_id)
+        audio = await engine.generate_async(self.text, self.voice_id)
         return TextToSpeechResponse(audio=audio, request=self)
 
     def to_json(self) -> str:
@@ -83,7 +85,7 @@ class TextToSpeechResponse(BaseModel):
                 "audio": "UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqF...",
                 "request": {
                     "text": "Hello, world! This is a test.",
-                    "voice_id": "kokoro.af-heart",
+                    "voice_id": "kokoro.af_heart",
                     "metadata": {"session_id": "demo_123"}
                 }
             }
@@ -125,21 +127,31 @@ class Engine:
         # self._engines['other_engine'] = OtherEngine.get_instance()
 
     @classmethod
-    def preload(cls):
-        """Preload all engines"""
+    async def preload_async(cls):
+        """Asynchronous preloading of all engines for better startup performance"""
         instance = cls.get_instance()
-        print("Preloading all engines...")
+        print("Preloading all engines asynchronously...")
         
-        for engine_name, engine in instance._engines.items():
+        async def preload_engine(engine_name: str, engine):
             try:
                 print(f"Preloading {engine_name} engine...")
-                # The KokoroEngine already preloads in its __init__
-                # For other engines, call their preload method if they have one
-                if hasattr(engine, 'preload') and callable(getattr(engine, 'preload')):
-                    engine.preload()
+                # Use async preload if available
+                if hasattr(engine, 'preload_async') and callable(getattr(engine, 'preload_async')):
+                    await engine.preload_async()
+                elif hasattr(engine, 'preload') and callable(getattr(engine, 'preload')):
+                    # Run sync preload in executor
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, engine.preload)
                 print(f"✓ {engine_name} engine preloaded successfully")
             except Exception as e:
                 print(f"✗ Failed to preload {engine_name} engine: {e}")
+
+        # Preload all engines concurrently
+        tasks = [
+            preload_engine(engine_name, engine)
+            for engine_name, engine in instance._engines.items()
+        ]
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     @classmethod
     def get_instance(cls) -> 'Engine':
@@ -165,6 +177,13 @@ class Engine:
         return instance._engines['kokoro']
 
     @classmethod
-    def get_sample(cls, voice_id: str) -> Optional[bytes]:
+    async def get_sample_async(cls, voice_id: str) -> Optional[bytes]:
+        """Asynchronous version of get_sample"""
         instance = cls.get_instance()
-        return instance._engines['kokoro'].get_sample(voice_id)
+        return await instance._engines['kokoro'].get_sample_async(voice_id)
+
+    async def generate_async(self, text: str, voice_id: str) -> bytes:
+        """Asynchronous generate method"""
+        # This method should be called on the specific engine instance
+        # returned by from_voice_id(), not the main Engine class
+        raise NotImplementedError("Use engine.generate_async() on the specific engine instance")

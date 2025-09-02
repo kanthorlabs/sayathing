@@ -1,4 +1,6 @@
 from typing import Optional
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from kokoro import KPipeline
 import soundfile as sf
 import torch
@@ -6,8 +8,11 @@ import base64
 import io
 import json
 import os
+import logging
 
 from .voices import Voices, VOICE_SAMPLE
+
+logger = logging.getLogger(__name__)
 
 
 # Custom exception classes
@@ -35,6 +40,7 @@ class KokoroEngine:
     _instance = None
     _initialized = False
     _preloaded_voices = {}
+    _executor = None
     sampling_rate = 24000
 
     def __new__(cls, voice_id: str = None):
@@ -49,28 +55,63 @@ class KokoroEngine:
         print("Initializing KokoroEngine singleton and preloading all voices...")
         self.pipeline = KPipeline(repo_id='hexgrad/Kokoro-82M', lang_code='a')
         
-        # Preload all voices to prevent cold starts
-        self._preload_voices()
+        # Initialize thread pool executor for async operations with configurable settings
+        if KokoroEngine._executor is None:
+            # Import here to avoid circular imports
+            try:
+                from server.config.async_config import AsyncConfig
+                config = AsyncConfig.get_tts_executor_config()
+                KokoroEngine._executor = ThreadPoolExecutor(**config)
+                logger.info(f"Initialized TTS executor with config: {config}")
+            except ImportError:
+                # Fallback to default configuration
+                KokoroEngine._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="kokoro-tts")
+                logger.info("Using default TTS executor configuration")
         
+        # Initialize without synchronous preloading - async preloading will be done later
         KokoroEngine._initialized = True
-        print(f"KokoroEngine initialized with {len(self._preloaded_voices)} voices preloaded")
+        print("KokoroEngine initialized - async preloading will be done separately")
 
-    def _preload_voices(self):
-        for voice_id in Voices.get_all().keys():
+    async def _preload_voices_async(self):
+        """Asynchronous version of voice preloading for better startup performance"""
+        async def preload_single_voice(voice_id: str):
             try:
                 voice_name = voice_id.split(".")[1] if "." in voice_id else voice_id
                 print(f"Preloading voice: {voice_name}")
                 
-                # Use the generate method to warm up the voice
-                audio_bytes = self._generate_audio(VOICE_SAMPLE, voice_id)
+                # Use the generate method to warm up the voice asynchronously with timeout
+                try:
+                    from server.config.async_config import AsyncConfig
+                    timeout = AsyncConfig.VOICE_PRELOAD_TIMEOUT
+                except ImportError:
+                    timeout = 120.0  # Default timeout
+                
+                loop = asyncio.get_event_loop()
+                audio_bytes = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        KokoroEngine._executor,
+                        self._generate_audio,
+                        VOICE_SAMPLE,
+                        voice_id
+                    ),
+                    timeout=timeout
+                )
                 
                 # Store the actual audio bytes data  
                 self._preloaded_voices[voice_id] = audio_bytes
                 print(f"✓ Voice {voice_name} preloaded successfully ({len(audio_bytes)} bytes)")
                 
+            except asyncio.TimeoutError:
+                print(f"✗ Timeout preloading voice {voice_name} (timeout: {timeout}s)")
+                self._preloaded_voices[voice_id] = None
             except Exception as e:
                 print(f"✗ Failed to preload voice {voice_name}: {e}")
                 self._preloaded_voices[voice_id] = None
+
+        # Preload all voices concurrently
+        voice_ids = list(Voices.get_all().keys())
+        tasks = [preload_single_voice(voice_id) for voice_id in voice_ids]
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     def _generate_audio(self, text: str, voice_id: str) -> bytes:
         """Internal method to generate audio for a given text and voice"""
@@ -86,7 +127,8 @@ class KokoroEngine:
         except Exception as e:
             raise AudioGenerationError(f"Failed to generate audio for voice '{voice_id}': {str(e)}")
 
-    def generate(self, text: str, voice_id: str) -> bytes:
+    async def generate_async(self, text: str, voice_id: str) -> bytes:
+        """Asynchronous version of generate for better performance"""
         # Validate voice_id is in available voices
         available_voices = list(Voices.get_all().keys())
         if voice_id not in available_voices:
@@ -96,8 +138,27 @@ class KokoroEngine:
         if self._preloaded_voices.get(voice_id) is None:
             raise VoicePreloadError(voice_id)
         
-        # Generate fresh audio for the requested text
-        return self._generate_audio(text, voice_id)
+        # Generate fresh audio for the requested text asynchronously with timeout
+        try:
+            # Import timeout configuration
+            try:
+                from server.config.async_config import AsyncConfig
+                timeout = AsyncConfig.TTS_GENERATION_TIMEOUT
+            except ImportError:
+                timeout = 30.0  # Default timeout
+            
+            loop = asyncio.get_event_loop()
+            return await asyncio.wait_for(
+                loop.run_in_executor(
+                    KokoroEngine._executor, 
+                    self._generate_audio, 
+                    text, 
+                    voice_id
+                ),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            raise AudioGenerationError(f"TTS generation timed out after {timeout}s for voice '{voice_id}'")
 
     @classmethod 
     def get_instance(cls) -> 'KokoroEngine':
@@ -106,7 +167,18 @@ class KokoroEngine:
             cls._instance = cls()
         return cls._instance
     
-    @classmethod
-    def get_sample(cls, voice_id: str) -> Optional[bytes]:
+    @classmethod 
+    async def get_sample_async(cls, voice_id: str) -> Optional[bytes]:
+        """Asynchronous version of get_sample"""
         instance = cls.get_instance()
+        # Since samples are preloaded, we can return them directly
+        # but we'll make it async for consistency with the API
         return instance._preloaded_voices.get(voice_id)
+
+    @classmethod
+    async def preload_async(cls):
+        """Asynchronous preloading of voices for better startup performance"""
+        instance = cls.get_instance()
+        if len(instance._preloaded_voices) == 0:  # Only preload if not already done
+            await instance._preload_voices_async()
+            print(f"KokoroEngine preloaded with {len(instance._preloaded_voices)} voices")

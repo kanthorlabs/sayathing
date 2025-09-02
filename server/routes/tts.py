@@ -21,7 +21,7 @@ router = APIRouter()
                         "audio": "UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqF...",
                         "request": {
                             "text": "Hello, world!",
-                            "voice_id": "kokoro.af-heart",
+                            "voice_id": "kokoro.af_heart",
                             "metadata": {}
                         }
                     }
@@ -61,7 +61,7 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
     
     **Voice IDs:**
     Use one of the available voice identifiers. Examples:
-    - `kokoro.af-heart` - American Female, warm and friendly
+    - `kokoro.af_heart` - American Female, warm and friendly
     - `kokoro.am-adam` - American Male, clear and professional
     - `kokoro.bf-emma` - British Female, elegant and refined
     - `kokoro.bm-george` - British Male, authoritative and clear
@@ -74,12 +74,17 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
     ```json
     {
         "text": "Hello, how are you today?",
-        "voice_id": "kokoro.af-heart",
+        "voice_id": "kokoro.af_heart",
         "metadata": {"session_id": "abc123"}
     }
     ```
     """
     logger.info(f"Processing TTS request for text length: {len(request.text)}, voice_id: {request.voice_id}")
-    response = request.execute()
-    logger.info(f"Successfully generated audio of {len(response.audio)} bytes")
-    return response
+    
+    try:
+        response = await request.execute_async()
+        logger.info(f"Successfully generated audio of {len(response.audio)} bytes")
+        return response
+    except Exception as e:
+        logger.error(f"Failed to generate TTS audio: {str(e)}")
+        raise

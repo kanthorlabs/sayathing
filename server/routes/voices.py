@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from fastapi import APIRouter, Query
 from tts import Engine, Voices, Voice
 
@@ -59,13 +60,50 @@ async def list_voices(
                         Setting to True will increase response size and processing time.
     """
 
-    items = []    
-    voices = Voices.get_all()
-    for voice_id, voice in voices.items():
-        item = Voice.from_dict({**voice, "id": voice_id})
+    logger.info(f"Listing voices (include_samples: {include_samples})")
+    
+    try:
+        voices = Voices.get_all()
+        items = []
+        
         if include_samples:
-            item.sample = Engine.get_sample(voice_id)
-        items.append(item)
+            logger.info("Processing voice samples concurrently...")
+            
+            # Create semaphore to limit concurrent operations
+            try:
+                from server.config.async_config import AsyncConfig
+                max_concurrent = AsyncConfig.MAX_CONCURRENT_VOICE_SAMPLES
+            except ImportError:
+                max_concurrent = 10  # Default
+            
+            semaphore = asyncio.Semaphore(max_concurrent)
+            
+            # Process samples concurrently for better performance
+            async def process_voice_with_sample(voice_id: str, voice_data: dict):
+                async with semaphore:  # Limit concurrent operations
+                    item = Voice.from_dict({**voice_data, "id": voice_id})
+                    item.sample = await Engine.get_sample_async(voice_id)
+                    return item
+            
+            # Create tasks for concurrent processing
+            tasks = [
+                process_voice_with_sample(voice_id, voice_data)
+                for voice_id, voice_data in voices.items()
+            ]
+            
+            # Wait for all tasks to complete
+            items = await asyncio.gather(*tasks)
+            logger.info(f"Successfully processed {len(items)} voice samples")
+        else:
+            # No samples needed, process synchronously (faster)
+            for voice_id, voice in voices.items():
+                item = Voice.from_dict({**voice, "id": voice_id})
+                items.append(item)
+            logger.info(f"Successfully processed {len(items)} voices")
 
-    sorted_voices = sorted(items, key=lambda x: (x.language, x.gender, x.name))
-    return sorted_voices
+        sorted_voices = sorted(items, key=lambda x: (x.language, x.gender, x.name))
+        return sorted_voices
+        
+    except Exception as e:
+        logger.error(f"Failed to list voices: {str(e)}")
+        raise

@@ -22,8 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Preload the TTS engine
-Engine.preload()
+# Note: Engine preloading is now handled asynchronously in the FastAPI startup event
 
 # Create FastAPI app
 app = create_app()
