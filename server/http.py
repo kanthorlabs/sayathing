@@ -11,7 +11,7 @@ from .exceptions.handlers import (
 )
 from .routes.health import router as health_router
 from .routes.tts import router as tts_router
-from .routes.voices import router as voices_router
+from .routes.voice import router as voice_router
 
 # Create FastAPI app
 app = create_app()
@@ -27,6 +27,6 @@ app.add_exception_handler(Exception, global_exception_handler)
 # Include routers
 app.include_router(health_router)
 app.include_router(tts_router)
-app.include_router(voices_router)
+app.include_router(voice_router)
 
 

@@ -6,7 +6,7 @@ from server.config.async_config import AsyncConfig
 router = APIRouter()
 
 @router.get(
-    "/tts/voices",
+    "/tts/voice",
     response_model=list[Voice],
     tags=["voices"],
     summary="List Available Voices",
@@ -36,7 +36,7 @@ router = APIRouter()
         }
     }
 )
-async def list_voices(
+async def list_voice(
     include_samples: bool = Query(
         default=False,
         description="Whether to include audio samples for each voice. Setting to true will increase response size and time."
