@@ -71,15 +71,12 @@ class Voices:
             return cls._voices
         except FileNotFoundError:
             error_msg = f"Voice configuration file not found at {json_path}"
-            print(f"Error: {error_msg}")
             raise VoiceRetrievalError(error_msg)
         except json.JSONDecodeError as e:
             error_msg = f"Error parsing voice configuration file: {e}"
-            print(f"Error: {error_msg}")
             raise VoiceRetrievalError(error_msg)
         except Exception as e:
             error_msg = f"Unexpected error loading voices: {e}"
-            print(f"Error: {error_msg}")
             raise VoiceRetrievalError(error_msg)
     
     @classmethod

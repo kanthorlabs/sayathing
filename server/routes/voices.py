@@ -1,9 +1,8 @@
-import logging
 import asyncio
 from fastapi import APIRouter, Query
 from tts import Engine, Voices, Voice
+from server.config.async_config import AsyncConfig
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get(
@@ -60,21 +59,13 @@ async def list_voices(
                         Setting to True will increase response size and processing time.
     """
 
-    logger.info(f"Listing voices (include_samples: {include_samples})")
-    
     try:
         voices = Voices.get_all()
         items = []
         
         if include_samples:
-            logger.info("Processing voice samples concurrently...")
-            
             # Create semaphore to limit concurrent operations
-            try:
-                from server.config.async_config import AsyncConfig
-                max_concurrent = AsyncConfig.MAX_CONCURRENT_VOICE_SAMPLES
-            except ImportError:
-                max_concurrent = 10  # Default
+            max_concurrent = AsyncConfig.MAX_CONCURRENT_VOICE_SAMPLES
             
             semaphore = asyncio.Semaphore(max_concurrent)
             
@@ -93,17 +84,14 @@ async def list_voices(
             
             # Wait for all tasks to complete
             items = await asyncio.gather(*tasks)
-            logger.info(f"Successfully processed {len(items)} voice samples")
         else:
             # No samples needed, process synchronously (faster)
             for voice_id, voice in voices.items():
                 item = Voice.from_dict({**voice, "id": voice_id})
                 items.append(item)
-            logger.info(f"Successfully processed {len(items)} voices")
 
         sorted_voices = sorted(items, key=lambda x: (x.language, x.gender, x.name))
         return sorted_voices
         
     except Exception as e:
-        logger.error(f"Failed to list voices: {str(e)}")
         raise

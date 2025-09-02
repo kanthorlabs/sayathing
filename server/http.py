@@ -1,5 +1,3 @@
-import logging
-
 from tts import Engine
 from tts import (
     VoiceNotFoundError, VoicePreloadError, AudioGenerationError, VoiceRetrievalError
@@ -14,15 +12,6 @@ from .exceptions.handlers import (
 from .routes.health import router as health_router
 from .routes.tts import router as tts_router
 from .routes.voices import router as voices_router
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Note: Engine preloading is now handled asynchronously in the FastAPI startup event
 
 # Create FastAPI app
 app = create_app()

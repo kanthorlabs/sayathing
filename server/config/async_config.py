@@ -19,9 +19,6 @@ class AsyncConfig:
     # Batch processing settings
     MAX_CONCURRENT_VOICE_SAMPLES: int = int(os.getenv("MAX_CONCURRENT_VOICE_SAMPLES", "10"))
     
-    # Logging
-    ASYNC_DEBUG_LOGGING: bool = os.getenv("ASYNC_DEBUG_LOGGING", "false").lower() == "true"
-    
     @classmethod
     def get_tts_executor_config(cls) -> dict:
         """Get configuration for TTS thread pool executor"""
@@ -29,16 +26,3 @@ class AsyncConfig:
             "max_workers": cls.TTS_THREAD_POOL_MAX_WORKERS,
             "thread_name_prefix": "kokoro-tts-async"
         }
-    
-    @classmethod
-    def log_config(cls):
-        """Log current async configuration"""
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info("Async TTS Configuration:")
-        logger.info(f"  TTS Thread Pool Max Workers: {cls.TTS_THREAD_POOL_MAX_WORKERS}")
-        logger.info(f"  TTS Generation Timeout: {cls.TTS_GENERATION_TIMEOUT}s")
-        logger.info(f"  Voice Preload Timeout: {cls.VOICE_PRELOAD_TIMEOUT}s")
-        logger.info(f"  Max Concurrent Voice Samples: {cls.MAX_CONCURRENT_VOICE_SAMPLES}")
-        logger.info(f"  Async Debug Logging: {cls.ASYNC_DEBUG_LOGGING}")

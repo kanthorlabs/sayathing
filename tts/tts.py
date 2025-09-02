@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_serializer, ConfigDict
 from enum import Enum
 
 from .kokoro_engine import KokoroEngine
+from .engine_interface import TTSEngineInterface
 
 class TextToSpeechRequest(BaseModel):
     """
@@ -101,7 +102,7 @@ class TextToSpeechResponse(BaseModel):
 class Engine:
     _instance = None
     _initialized = False
-    _engines = {}
+    _engines: Dict[str, TTSEngineInterface] = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -112,10 +113,8 @@ class Engine:
         if Engine._initialized:
             return
         
-        print("Initializing Engine singleton...")
         self._initialize_engines()
         Engine._initialized = True
-        print("Engine singleton initialized successfully")
 
     def _initialize_engines(self):
         """Initialize all available engine instances"""
@@ -130,26 +129,10 @@ class Engine:
     async def preload_async(cls):
         """Asynchronous preloading of all engines for better startup performance"""
         instance = cls.get_instance()
-        print("Preloading all engines asynchronously...")
         
-        async def preload_engine(engine_name: str, engine):
-            try:
-                print(f"Preloading {engine_name} engine...")
-                # Use async preload if available
-                if hasattr(engine, 'preload_async') and callable(getattr(engine, 'preload_async')):
-                    await engine.preload_async()
-                elif hasattr(engine, 'preload') and callable(getattr(engine, 'preload')):
-                    # Run sync preload in executor
-                    loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(None, engine.preload)
-                print(f"✓ {engine_name} engine preloaded successfully")
-            except Exception as e:
-                print(f"✗ Failed to preload {engine_name} engine: {e}")
-
         # Preload all engines concurrently
         tasks = [
-            preload_engine(engine_name, engine)
-            for engine_name, engine in instance._engines.items()
+            engine.preload_async() for engine in instance._engines.values()
         ]
         await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -161,7 +144,7 @@ class Engine:
         return cls._instance
 
     @classmethod
-    def from_voice_id(cls, voice_id: str) -> 'Engine':
+    def from_voice_id(cls, voice_id: str) -> TTSEngineInterface:
         """Get engine instance based on voice_id"""
         instance = cls.get_instance()
         
@@ -187,3 +170,15 @@ class Engine:
         # This method should be called on the specific engine instance
         # returned by from_voice_id(), not the main Engine class
         raise NotImplementedError("Use engine.generate_async() on the specific engine instance")
+
+    @classmethod
+    def shutdown(cls):
+        """Shutdown all engines and cleanup resources"""
+        instance = cls.get_instance()
+        
+        # Shutdown all engines - they all implement the shutdown method from the interface
+        for engine_name, engine in instance._engines.items():
+            try:
+                engine.shutdown()
+            except Exception as e:
+                pass  # Silently handle shutdown errors

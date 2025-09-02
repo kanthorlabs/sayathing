@@ -1,8 +1,6 @@
-import logging
 from fastapi import APIRouter, status
 from tts import TextToSpeechRequest, TextToSpeechResponse
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post(
@@ -79,12 +77,9 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
     }
     ```
     """
-    logger.info(f"Processing TTS request for text length: {len(request.text)}, voice_id: {request.voice_id}")
     
     try:
         response = await request.execute_async()
-        logger.info(f"Successfully generated audio of {len(response.audio)} bytes")
         return response
     except Exception as e:
-        logger.error(f"Failed to generate TTS audio: {str(e)}")
         raise

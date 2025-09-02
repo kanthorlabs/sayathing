@@ -7,6 +7,7 @@ This module provides voice synthesis capabilities using various voice engines.
 from .voices import Voice, Voices, VoiceRetrievalError
 from .tts import Engine, TextToSpeechRequest, TextToSpeechResponse
 from .kokoro_engine import VoiceNotFoundError, VoicePreloadError, AudioGenerationError
+from .engine_interface import TTSEngineInterface
 
 __all__ = [
     "Voice",
@@ -17,5 +18,6 @@ __all__ = [
     "TextToSpeechResponse",
     "VoiceNotFoundError",
     "VoicePreloadError", 
-    "AudioGenerationError"
+    "AudioGenerationError",
+    "TTSEngineInterface"
 ]
