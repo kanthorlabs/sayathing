@@ -4,11 +4,18 @@ TTS (Text-to-Speech) module for generating speech from text.
 This module provides voice synthesis capabilities using various voice engines.
 """
 
-from .tts import Engine, Voices, TextToSpeechRequest, TextToSpeechResponse
+from .voices import Voice, Voices, VoiceRetrievalError
+from .tts import Engine, TextToSpeechRequest, TextToSpeechResponse
+from .kokoro_engine import VoiceNotFoundError, VoicePreloadError, AudioGenerationError
 
 __all__ = [
-    "Engine"
-    "Voices",
+    "Voice",
+    "Voices", 
+    "VoiceRetrievalError",
+    "Engine",
     "TextToSpeechRequest",
-    "TextToSpeechResponse"
+    "TextToSpeechResponse",
+    "VoiceNotFoundError",
+    "VoicePreloadError", 
+    "AudioGenerationError"
 ]

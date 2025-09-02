@@ -1,65 +1,112 @@
+from typing import Optional
 from kokoro import KPipeline
 import soundfile as sf
 import torch
 import base64
 import io
-from enum import Enum
+import json
+import os
 
-class KokoroVoices(Enum):
-    # American English Female Voices
-    AF_HEART = "kokoro.af_heart"           # Heart - ❤️ - Grade: A
-    AF_ALLOY = "kokoro.af_alloy"           # Alloy - Grade: C
-    AF_AOEDE = "kokoro.af_aoede"           # Aoede - Grade: C+
-    AF_BELLA = "kokoro.af_bella"           # Bella - 🔥 - Grade: A-
-    AF_JESSICA = "kokoro.af_jessica"       # Jessica - Grade: D
-    AF_KORE = "kokoro.af_kore"             # Kore - Grade: C+
-    AF_NICOLE = "kokoro.af_nicole"         # Nicole - 🎧 - Grade: B-
-    AF_NOVA = "kokoro.af_nova"             # Nova - Grade: C
-    AF_RIVER = "kokoro.af_river"           # River - Grade: D
-    AF_SARAH = "kokoro.af_sarah"           # Sarah - Grade: C+
-    AF_SKY = "kokoro.af_sky"               # Sky - Grade: C-
-    
-    # American English Male Voices
-    AM_ADAM = "kokoro.am_adam"             # Adam - Grade: F+
-    AM_ECHO = "kokoro.am_echo"             # Echo - Grade: D
-    AM_ERIC = "kokoro.am_eric"             # Eric - Grade: D
-    AM_FENRIR = "kokoro.am_fenrir"         # Fenrir - Grade: C+
-    AM_LIAM = "kokoro.am_liam"             # Liam - Grade: D
-    AM_MICHAEL = "kokoro.am_michael"       # Michael - Grade: C+
-    AM_ONYX = "kokoro.am_onyx"             # Onyx - Grade: D
-    AM_PUCK = "kokoro.am_puck"             # Puck - Grade: C+
-    AM_SANTA = "kokoro.am_santa"           # Santa - Grade: D-
-    
-    # British English Female Voices
-    BF_EMMA = "kokoro.bf_emma"             # Emma - 🚺 - Grade: B-
-    BF_ISABELLA = "kokoro.bf_isabella"     # Isabella - Grade: C
-    BF_ALICE = "kokoro.bf_alice"           # Alice - 🚺 - Grade: D
-    BF_LILY = "kokoro.bf_lily"             # Lily - 🚺 - Grade: D
-    
-    # British English Male Voices
-    BM_GEORGE = "kokoro.bm_george"         # George - Grade: C
-    BM_LEWIS = "kokoro.bm_lewis"           # Lewis - Grade: D+
-    BM_DANIEL = "kokoro.bm_daniel"         # Daniel - 🚹 - Grade: D
-    BM_FABLE = "kokoro.bm_fable"           # Fable - 🚹 - Grade: C
+from .voices import Voices, VOICE_SAMPLE
 
+
+# Custom exception classes
+class VoiceNotFoundError(Exception):
+    """Exception raised when a voice ID is not found"""
+    def __init__(self, voice_id: str, available_voices: list = None):
+        self.voice_id = voice_id
+        self.available_voices = available_voices or []
+        super().__init__(f"Invalid voice_id '{voice_id}'. Must be one of: {available_voices}")
+
+
+class VoicePreloadError(Exception):
+    """Exception raised when a voice fails to preload"""
+    def __init__(self, voice_id: str):
+        self.voice_id = voice_id
+        super().__init__(f"Voice '{voice_id}' is not available or failed to preload")
+
+
+class AudioGenerationError(Exception):
+    """Exception raised when audio generation fails"""
+    def __init__(self, message: str = "Failed to generate audio"):
+        super().__init__(message)
 
 class KokoroEngine:
-    def __init__(self, voice_id: str):
-        # Validate voice_id is in KokoroVoices enum
-        if voice_id not in [voice.value for voice in KokoroVoices]:
-            raise ValueError(f"Invalid voice_id '{voice_id}'. Must be one of: {[voice.value for voice in KokoroVoices]}")
+    _instance = None
+    _initialized = False
+    _preloaded_voices = {}
+    sampling_rate = 24000
+
+    def __new__(cls, voice_id: str = None):
+        if cls._instance is None:
+            cls._instance = super(KokoroEngine, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, voice_id: str = None):
+        if KokoroEngine._initialized:
+            return
         
+        print("Initializing KokoroEngine singleton and preloading all voices...")
         self.pipeline = KPipeline(repo_id='hexgrad/Kokoro-82M', lang_code='a')
-        self.voice_id = voice_id
-        self.sampling_rate = 24000
-
-    def generate(self, text: str) -> bytes:
-        voice_id = self.voice_id.split(".")[1] if self.voice_id else self.voice_id
-        generator = self.pipeline(text, voice=voice_id)
-        [result] = list(generator)
         
-        buffer = io.BytesIO()
-        sf.write(buffer, result.audio, self.sampling_rate, format='WAV')
-        buffer.seek(0)
-        return buffer.read()
+        # Preload all voices to prevent cold starts
+        self._preload_voices()
+        
+        KokoroEngine._initialized = True
+        print(f"KokoroEngine initialized with {len(self._preloaded_voices)} voices preloaded")
 
+    def _preload_voices(self):
+        for voice_id in Voices.get_all().keys():
+            try:
+                voice_name = voice_id.split(".")[1] if "." in voice_id else voice_id
+                print(f"Preloading voice: {voice_name}")
+                
+                # Use the generate method to warm up the voice
+                audio_bytes = self._generate_audio(VOICE_SAMPLE, voice_id)
+                
+                # Store the actual audio bytes data  
+                self._preloaded_voices[voice_id] = audio_bytes
+                print(f"✓ Voice {voice_name} preloaded successfully ({len(audio_bytes)} bytes)")
+                
+            except Exception as e:
+                print(f"✗ Failed to preload voice {voice_name}: {e}")
+                self._preloaded_voices[voice_id] = None
+
+    def _generate_audio(self, text: str, voice_id: str) -> bytes:
+        """Internal method to generate audio for a given text and voice"""
+        try:
+            voice_name = voice_id.split(".")[1] if "." in voice_id else voice_id
+            generator = self.pipeline(text, voice=voice_name)
+            [result] = list(generator)
+            
+            buffer = io.BytesIO()
+            sf.write(buffer, result.audio, self.sampling_rate, format='WAV')
+            buffer.seek(0)
+            return buffer.read()
+        except Exception as e:
+            raise AudioGenerationError(f"Failed to generate audio for voice '{voice_id}': {str(e)}")
+
+    def generate(self, text: str, voice_id: str) -> bytes:
+        # Validate voice_id is in available voices
+        available_voices = list(Voices.get_all().keys())
+        if voice_id not in available_voices:
+            raise VoiceNotFoundError(voice_id, available_voices)
+        
+        # Check if voice was successfully preloaded
+        if self._preloaded_voices.get(voice_id) is None:
+            raise VoicePreloadError(voice_id)
+        
+        # Generate fresh audio for the requested text
+        return self._generate_audio(text, voice_id)
+
+    @classmethod 
+    def get_instance(cls) -> 'KokoroEngine':
+        """Get the singleton instance of KokoroEngine"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    @classmethod
+    def get_sample(cls, voice_id: str) -> Optional[bytes]:
+        instance = cls.get_instance()
+        return instance._preloaded_voices.get(voice_id)

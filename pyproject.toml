@@ -1,7 +1,7 @@
 [project]
 name = "sayathing"
-version = "0.1.0"
-description = "Add your description here"
+version = "25.9.1"
+description = "Open Source Platform That Gives Your Text a Voice."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,4 +9,6 @@ dependencies = [
     "soundfile>=0.13.1",
     "pip>=24.0",
     "misaki[en]>=0.9.4",
+    "uvicorn>=0.35.0",
+    "fastapi[standard]>=0.116.1",
 ]

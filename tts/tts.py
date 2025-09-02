@@ -1,53 +1,49 @@
 import base64
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field, field_serializer, ConfigDict
 from enum import Enum
 
-from .kokoro_engine import KokoroVoices, KokoroEngine
-
-class Voices(Enum):
-    # Kokoro voices
-    KOKORO_AF_HEART = KokoroVoices.AF_HEART.value
-    KOKORO_AF_ALLOY = KokoroVoices.AF_ALLOY.value
-    KOKORO_AF_AOEDE = KokoroVoices.AF_AOEDE.value
-    KOKORO_AF_BELLA = KokoroVoices.AF_BELLA.value
-    KOKORO_AF_JESSICA = KokoroVoices.AF_JESSICA.value
-    KOKORO_AF_KORE = KokoroVoices.AF_KORE.value
-    KOKORO_AF_NICOLE = KokoroVoices.AF_NICOLE.value
-    KOKORO_AF_NOVA = KokoroVoices.AF_NOVA.value
-    KOKORO_AF_RIVER = KokoroVoices.AF_RIVER.value
-    KOKORO_AF_SARAH = KokoroVoices.AF_SARAH.value
-    KOKORO_AF_SKY = KokoroVoices.AF_SKY.value
-    KOKORO_AM_ADAM = KokoroVoices.AM_ADAM.value
-    KOKORO_AM_ECHO = KokoroVoices.AM_ECHO.value
-    KOKORO_AM_ERIC = KokoroVoices.AM_ERIC.value
-    KOKORO_AM_FENRIR = KokoroVoices.AM_FENRIR.value
-    KOKORO_AM_LIAM = KokoroVoices.AM_LIAM.value
-    KOKORO_AM_MICHAEL = KokoroVoices.AM_MICHAEL.value
-    KOKORO_AM_ONYX = KokoroVoices.AM_ONYX.value
-    KOKORO_AM_PUCK = KokoroVoices.AM_PUCK.value
-    KOKORO_AM_SANTA = KokoroVoices.AM_SANTA.value
-    KOKORO_BF_EMMA = KokoroVoices.BF_EMMA.value
-    KOKORO_BF_ISABELLA = KokoroVoices.BF_ISABELLA.value
-    KOKORO_BF_ALICE = KokoroVoices.BF_ALICE.value
-    KOKORO_BF_LILY = KokoroVoices.BF_LILY.value
-    KOKORO_BM_GEORGE = KokoroVoices.BM_GEORGE.value
-    KOKORO_BM_LEWIS = KokoroVoices.BM_LEWIS.value
-    KOKORO_BM_DANIEL = KokoroVoices.BM_DANIEL.value
-    KOKORO_BM_FABLE = KokoroVoices.BM_FABLE.value
+from .kokoro_engine import KokoroEngine
 
 class TextToSpeechRequest(BaseModel):
     """
     Represents a request to synthesize text into speech.
     """
     
-    text: str
-    voice_id: str
-    metadata: Dict[str, Any]
+    text: str = Field(
+        ...,
+        description="The text to convert to speech",
+        example="Hello, world! How are you today?",
+        min_length=1,
+        max_length=10000
+    )
+    voice_id: str = Field(
+        ...,
+        description="The voice identifier to use for synthesis. Use /voices endpoint to get available options.",
+        example="kokoro.af-heart"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata for the request (optional)",
+        example={"session_id": "abc123", "user_id": "user456"}
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "text": "Hello, world! This is a test of the text-to-speech system.",
+                "voice_id": "kokoro.af-heart",
+                "metadata": {
+                    "session_id": "demo_session_123",
+                    "timestamp": "2025-09-02T12:00:00Z"
+                }
+            }
+        }
+    )
 
     def execute(self) -> 'TextToSpeechResponse':
         engine = Engine.from_voice_id(self.voice_id)
-        audio = engine.generate(self.text)
+        audio = engine.generate(self.text, self.voice_id)
         return TextToSpeechResponse(audio=audio, request=self)
 
     def to_json(self) -> str:
@@ -67,13 +63,32 @@ class TextToSpeechResponse(BaseModel):
     """
     Represents the response from a text-to-speech synthesis.
     """
-    audio: bytes
+    audio: bytes = Field(
+        ...,
+        description="The synthesized audio data in WAV format, encoded as base64"
+    )
 
     @field_serializer("audio")
-    def encode_audio(self, v: bytes, _info):
+    def serialize_audio(self, v: bytes, _info):
         return base64.b64encode(v).decode("utf-8")
 
-    request: TextToSpeechRequest
+    request: TextToSpeechRequest = Field(
+        ...,
+        description="Echo of the original request for reference"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "audio": "UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqF...",
+                "request": {
+                    "text": "Hello, world! This is a test.",
+                    "voice_id": "kokoro.af-heart",
+                    "metadata": {"session_id": "demo_123"}
+                }
+            }
+        }
+    )
 
     def to_json(self) -> str:
         """
@@ -82,6 +97,74 @@ class TextToSpeechResponse(BaseModel):
         return self.model_dump_json()
 
 class Engine:
+    _instance = None
+    _initialized = False
+    _engines = {}
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Engine, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if Engine._initialized:
+            return
+        
+        print("Initializing Engine singleton...")
+        self._initialize_engines()
+        Engine._initialized = True
+        print("Engine singleton initialized successfully")
+
+    def _initialize_engines(self):
+        """Initialize all available engine instances"""
+        # Initialize Kokoro engine
+        kokoro_engine = KokoroEngine.get_instance()
+        self._engines['kokoro'] = kokoro_engine
+        
+        # Add other engines here as they become available
+        # self._engines['other_engine'] = OtherEngine.get_instance()
+
+    @classmethod
+    def preload(cls):
+        """Preload all engines"""
+        instance = cls.get_instance()
+        print("Preloading all engines...")
+        
+        for engine_name, engine in instance._engines.items():
+            try:
+                print(f"Preloading {engine_name} engine...")
+                # The KokoroEngine already preloads in its __init__
+                # For other engines, call their preload method if they have one
+                if hasattr(engine, 'preload') and callable(getattr(engine, 'preload')):
+                    engine.preload()
+                print(f"✓ {engine_name} engine preloaded successfully")
+            except Exception as e:
+                print(f"✗ Failed to preload {engine_name} engine: {e}")
+
+    @classmethod
+    def get_instance(cls) -> 'Engine':
+        """Get the singleton instance of Engine"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
     @classmethod
     def from_voice_id(cls, voice_id: str) -> 'Engine':
-        return KokoroEngine(voice_id)
+        """Get engine instance based on voice_id"""
+        instance = cls.get_instance()
+        
+        # Determine which engine to use based on voice_id prefix
+        if voice_id.startswith('kokoro.'):
+            return instance._engines['kokoro']
+        
+        # Add logic for other engines as they become available
+        # elif voice_id.startswith('other.'):
+        #     return instance._engines['other_engine']
+        
+        # Default to kokoro for backward compatibility
+        return instance._engines['kokoro']
+
+    @classmethod
+    def get_sample(cls, voice_id: str) -> Optional[bytes]:
+        instance = cls.get_instance()
+        return instance._engines['kokoro'].get_sample(voice_id)
