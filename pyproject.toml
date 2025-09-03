@@ -11,4 +11,14 @@ dependencies = [
     "misaki[en]>=0.9.4",
     "uvicorn>=0.35.0",
     "fastapi[standard]>=0.116.1",
+    "sqlalchemy>=2.0.0",
+    "aiosqlite>=0.19.0",
+    "ulid-py>=1.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
 ]

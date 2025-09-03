@@ -24,5 +24,5 @@ class AsyncConfig:
         """Get configuration for TTS thread pool executor"""
         return {
             "max_workers": cls.TTS_THREAD_POOL_MAX_WORKERS,
-            "thread_name_prefix": "kokoro-tts-async"
+            "thread_name_prefix": "sayathing-tts-async"
         }

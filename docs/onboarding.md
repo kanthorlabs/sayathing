@@ -7,7 +7,7 @@ Welcome to Sayathing, an open-source Text-to-Speech (TTS) API powered by the Kok
 - Top-level
 	- `server/` – FastAPI app, routes, config, and exception handlers.
 	- `tts/` – TTS domain: engines, engine interface, models, and voice data.
-	- `docs/` – Documentation (this doc lives here).
+	- `docs/` – Documentation (this doc lives here and future docs as well).
 	- `data/` – Data assets (if/when needed).
 	- `pyproject.toml` – Project metadata and runtime dependencies.
 	- `uv.lock` – Locked dependency graph for the `uv` package manager.
