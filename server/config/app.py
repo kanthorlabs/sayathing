@@ -10,6 +10,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from tts import Engine
+from worker import WorkerQueue, Publisher
 from .async_config import AsyncConfig
 
 # OpenAPI metadata
@@ -66,7 +67,13 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup_event():
-        asyncio.create_task( Engine.preload_async())
+        # Preload TTS engines (non-blocking) and initialize queue/publisher
+        asyncio.create_task(Engine.preload_async())
+        # Initialize worker queue
+        app.state.worker_queue = WorkerQueue()
+        await app.state.worker_queue.initialize()
+        # Initialize the publisher
+        app.state.publisher = Publisher(app.state.worker_queue)
 
     @app.on_event("shutdown")
     async def shutdown_event():
@@ -74,6 +81,9 @@ def create_app() -> FastAPI:
         try:
             # Use the Engine singleton to handle shutdown of all engines
             Engine.shutdown()
+            # Close queue
+            if hasattr(app.state, "worker_queue"):
+                await app.state.worker_queue.close()
                 
         except Exception as e:
             pass  # Silently handle shutdown errors

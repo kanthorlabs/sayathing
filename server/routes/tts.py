@@ -1,5 +1,8 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Request
+from pydantic import BaseModel, Field
+from typing import List
 from tts import TextToSpeechRequest, TextToSpeechResponse
+from worker import TaskItem
 
 router = APIRouter()
 
@@ -83,3 +86,31 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
         return response
     except Exception as e:
         raise
+
+
+class PublishTasksRequest(BaseModel):
+    tasks: List[TextToSpeechRequest] = Field(..., min_length=1, description="List of request to enqueue")
+
+
+class PublishTasksResponse(BaseModel):
+    task_ids: List[str]
+
+
+@router.post(
+    "/tts/queue/task",
+    response_model=PublishTasksResponse,
+    tags=["tts"],
+    summary="Publish TTS tasks to queue",
+    description="Queue one or many TTS tasks for asynchronous processing",
+    responses={
+        200: {"description": "Tasks enqueued"},
+        400: {"description": "Invalid request"},
+    },
+)
+async def publish_tts_tasks(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
+    items: List[TaskItem] = [
+        TaskItem(request=ti.request) for ti in body.tasks
+    ]
+    publisher = req.app.state.publisher  # type: ignore[attr-defined]
+    task_ids = await publisher.pub(items)
+    return PublishTasksResponse(task_ids=task_ids)

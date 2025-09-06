@@ -1,7 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Any
 from enum import Enum
 from pydantic import BaseModel
-from tts import TextToSpeechRequest
 
 class TaskState(Enum):
     # Discarded is the state for tasks that have errored enough times
@@ -23,7 +22,7 @@ class TaskState(Enum):
     RETRYABLE = 101
 
 class TaskItem(BaseModel):
-    request: TextToSpeechRequest
+    request: Any
     response_url: str
 
     def to_json(self) -> str:

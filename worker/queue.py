@@ -90,7 +90,7 @@ class WorkerQueue:
         )
         return int(delay_seconds * 1000)
 
-    async def enqueue(self, tasks: List[Task]) -> int:
+    async def enqueue(self, tasks: List[Task]) -> List[str]:
         """
         Bulk insert multiple tasks atomically.
         
@@ -104,7 +104,7 @@ class WorkerQueue:
             QueueError: If bulk insertion fails
         """
         if not tasks:
-            return 0
+            return []
 
         current_time = self._current_timestamp_ms()
         
@@ -132,8 +132,8 @@ class WorkerQueue:
                 await session.flush()
                 
                 logger.info("Enqueued %d tasks", len(tasks))
-                return len(tasks)
-                
+                return [task.id for task in tasks]
+
             except IntegrityError as e:
                 logger.warning("Some tasks may have duplicate IDs: %s", e)
                 # Count how many were actually inserted by checking existing IDs
@@ -141,10 +141,7 @@ class WorkerQueue:
                 result = await session.execute(
                     select(TaskModel.id).where(TaskModel.id.in_(task_ids))
                 )
-                existing_ids = {row[0] for row in result.fetchall()}
-                inserted_count = len(existing_ids)
-                logger.info("Enqueued %d tasks (some duplicates skipped)", inserted_count)
-                return inserted_count
+                return [row.id for row in result.fetchall()]
                 
             except Exception as e:
                 logger.error("Failed to enqueue tasks: %s", e)
