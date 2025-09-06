@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, Request
 from pydantic import BaseModel, Field
 from typing import List
 from tts import TextToSpeechRequest, TextToSpeechResponse
-from worker import TaskItem
+from worker import TaskItem, Task, TaskState
 
 router = APIRouter()
 
@@ -111,6 +111,20 @@ async def publish_tts_tasks(req: Request, body: PublishTasksRequest) -> PublishT
     items: List[TaskItem] = [
         TaskItem(request=ti.request) for ti in body.tasks
     ]
-    publisher = req.app.state.publisher  # type: ignore[attr-defined]
-    task_ids = await publisher.pub(items)
+    
+    if not items:
+        return PublishTasksResponse(task_ids=[])
+    
+    # Create a single task containing all items
+    task = Task(
+        id="",  # let queue assign ULID
+        state=TaskState.PENDING,
+        schedule_at=0,  # will be set by queue
+        items=items,
+        created_at=0,
+        updated_at=0,
+    )
+    
+    worker_queue = req.app.state.worker_queue  # type: ignore[attr-defined]
+    task_ids = await worker_queue.enqueue([task])
     return PublishTasksResponse(task_ids=task_ids)

@@ -9,7 +9,6 @@ from .queue import WorkerQueue, QueueError, TaskNotFoundError, InvalidStateTrans
 from .task import Task, TaskItem, TaskState
 from .config import QueueConfig
 from .database import DatabaseManager, TaskModel
-from .publisher import Publisher
 
 __all__ = [
     "WorkerQueue",
@@ -22,5 +21,4 @@ __all__ = [
     "QueueConfig",
     "DatabaseManager",
     "TaskModel",
-    "Publisher",
 ]

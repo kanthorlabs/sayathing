@@ -28,5 +28,3 @@ app.add_exception_handler(Exception, global_exception_handler)
 app.include_router(health_router)
 app.include_router(tts_router)
 app.include_router(voice_router)
-
-
