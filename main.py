@@ -20,6 +20,7 @@ import uvicorn
 from server.http import app
 from worker.workers.primary_worker import PrimaryWorker
 from worker.workers.retry_worker import RetryWorker
+from worker import initialize_container, container
 
 
 class ServiceManager:
@@ -82,7 +83,11 @@ class ServiceManager:
         """Run a primary worker"""
         self.logger.info(f"Starting primary worker {worker_id}")
         
-        worker = PrimaryWorker(worker_id=worker_id)
+        # Get dependencies from DI container (singleton DatabaseManager)
+        db_manager = container.database_manager()
+        queue = container.worker_queue()
+        
+        worker = PrimaryWorker(worker_id=worker_id, queue=queue, database_manager=db_manager)
         
         try:
             # Start the worker
@@ -102,7 +107,11 @@ class ServiceManager:
         """Run a retry worker"""
         self.logger.info(f"Starting retry worker {worker_id}")
         
-        worker = RetryWorker(worker_id=worker_id)
+        # Get dependencies from DI container (singleton DatabaseManager)
+        db_manager = container.database_manager()
+        queue = container.worker_queue()
+        
+        worker = RetryWorker(worker_id=worker_id, queue=queue, database_manager=db_manager)
         
         try:
             # Start the worker
@@ -124,6 +133,11 @@ class ServiceManager:
         self.logger.info(f"Configuration: HTTP={self.enable_http}, Primary Workers={self.primary_workers}, Retry Workers={self.retry_workers}")
         
         try:
+            # Initialize the DI container first to ensure singleton database manager
+            self.logger.info("Initializing dependency injection container...")
+            await initialize_container()
+            self.logger.info("DI container initialized - singleton DatabaseManager created")
+            
             # Create tasks for all services
             if self.enable_http:
                 self.tasks.append(asyncio.create_task(self._run_http_server()))

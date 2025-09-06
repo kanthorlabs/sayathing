@@ -10,7 +10,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from tts import Engine
-from worker import WorkerQueue
+from worker import container, initialize_container
 
 # OpenAPI metadata
 def create_app() -> FastAPI:
@@ -66,10 +66,14 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup_event():
-        # Preload TTS engines (non-blocking) and initialize worker queue
+        # Initialize the DI container first to ensure singleton database manager is created
+        await initialize_container()
+        
+        # Preload TTS engines (non-blocking) 
         asyncio.create_task(Engine.preload_async())
-        # Initialize worker queue
-        app.state.worker_queue = WorkerQueue()
+        
+        # Get worker queue from DI container (will use the singleton DatabaseManager)
+        app.state.worker_queue = container.worker_queue()
         await app.state.worker_queue.initialize()
 
     @app.on_event("shutdown")

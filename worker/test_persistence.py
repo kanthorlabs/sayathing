@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tts import TextToSpeechRequest
-from worker import WorkerQueue, Task, TaskItem, TaskState, QueueConfig
+from worker import WorkerQueue, Task, TaskItem, TaskState, QueueConfig, create_test_container
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +31,8 @@ async def test_queue_persistence():
         
         # Phase 1: Create queue and add tasks
         logger.info("Phase 1: Creating queue and adding tasks")
-        queue1 = WorkerQueue(config)
+        test_container1 = create_test_container(config)
+        queue1 = test_container1.worker_queue()
         await queue1.initialize()
         
         # Create a test task
@@ -66,7 +67,8 @@ async def test_queue_persistence():
         
         # Phase 2: Recreate queue and verify persistence
         logger.info("Phase 2: Recreating queue and verifying persistence")
-        queue2 = WorkerQueue(config)
+        test_container2 = create_test_container(config)
+        queue2 = test_container2.worker_queue()
         await queue2.initialize()
         
         # Verify the task is still there

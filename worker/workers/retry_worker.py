@@ -23,15 +23,15 @@ class RetryWorker:
     them again with proper retry logic and exponential backoff.
     """
     
-    def __init__(self, worker_id: str = f"retry-{time.time()}"):
+    def __init__(self, worker_id: str = f"retry-{time.time()}", queue: Optional[WorkerQueue] = None, database_manager: Optional[DatabaseManager] = None):
         self.worker_id = worker_id
         self.logger = logging.getLogger(f"worker-{self.worker_id}")
         self.is_running = False
         self._shutdown_event = asyncio.Event()
-        self.queue: Optional[WorkerQueue] = None
-        self.db_manager: Optional[DatabaseManager] = None
+        self.queue = queue
+        self.db_manager = database_manager
         
-        # Configuration from environment variables
+        # Get configuration from environment
         self.queue_config = QueueConfig.from_env()
         self.worker_config = WorkerConfig.from_env()
         self.poll_delay = self.worker_config.retry_worker_poll_delay
@@ -43,13 +43,14 @@ class RetryWorker:
         """Initialize the worker and dependencies"""
         self.logger.info(f"Starting retry worker {self.worker_id}")
         
-        # Initialize database manager
-        self.db_manager = DatabaseManager(self.queue_config.database_url)
-        await self.db_manager.initialize()
+        # If dependencies not provided, create them (fallback)
+        if self.db_manager is None:
+            self.db_manager = DatabaseManager(self.queue_config.database_url)
+            await self.db_manager.initialize()
         
-        # Initialize queue
-        self.queue = WorkerQueue(self.queue_config)
-        await self.queue.initialize()
+        if self.queue is None:
+            self.queue = WorkerQueue(self.queue_config, self.db_manager)
+            await self.queue.initialize()
         
         self.is_running = True
         self.logger.info(f"Retry worker {self.worker_id} started successfully")

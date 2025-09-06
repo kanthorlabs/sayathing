@@ -51,9 +51,13 @@ class WorkerQueue:
     - Comprehensive state management
     """
 
-    def __init__(self, config: Optional[QueueConfig] = None):
+    def __init__(self, config: Optional[QueueConfig] = None, database_manager: Optional[DatabaseManager] = None):
         self.config = config or QueueConfig.from_env()
-        self.db_manager = DatabaseManager(self.config.database_url)
+        if database_manager is None:
+            # Fallback to creating our own DatabaseManager if not injected
+            self.db_manager = DatabaseManager(self.config.database_url)
+        else:
+            self.db_manager = database_manager
 
     async def initialize(self):
         """Initialize the queue and create database tables"""

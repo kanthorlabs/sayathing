@@ -18,7 +18,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tts import TextToSpeechRequest
 from worker import (
     WorkerQueue, Task, TaskItem, TaskState, QueueConfig,
-    QueueError, TaskNotFoundError, InvalidStateTransitionError
+    QueueError, TaskNotFoundError, InvalidStateTransitionError,
+    create_test_container
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -34,7 +35,8 @@ async def queue_config():
 @pytest_asyncio.fixture
 async def worker_queue(queue_config):
     """Fixture providing initialized worker queue"""
-    queue = WorkerQueue(queue_config)
+    test_container = create_test_container(queue_config)
+    queue = test_container.worker_queue()
     await queue.initialize()
     yield queue
     await queue.close()

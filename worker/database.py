@@ -95,6 +95,10 @@ class DatabaseManager:
         async with self.async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
+    async def initialize(self):
+        """Initialize the database by creating tables"""
+        await self.create_tables()
+
     async def get_session(self) -> AsyncSession:
         """Get an async database session"""
         return self.async_session_factory()

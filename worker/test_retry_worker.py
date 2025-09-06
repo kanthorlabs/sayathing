@@ -19,6 +19,7 @@ from worker.queue import WorkerQueue
 from worker.task import Task, TaskItem, TaskState
 from worker.config import QueueConfig
 from worker.workers import RetryWorker
+from worker import create_test_container
 
 # Configure logging
 logging.basicConfig(
@@ -69,7 +70,8 @@ async def test_retry_worker():
         config = QueueConfig(database_url=f"sqlite+aiosqlite:///{db_path}")
         
         # Initialize queue and add test tasks
-        queue = WorkerQueue(config)
+        test_container = create_test_container(config)
+        queue = test_container.worker_queue()
         await queue.initialize()
         
         # Create sample retryable tasks
@@ -111,7 +113,8 @@ async def test_retry_worker():
         await run_worker_with_timeout()
         
         # Check final task states
-        final_queue = WorkerQueue(config)
+        final_test_container = create_test_container(config)
+        final_queue = final_test_container.worker_queue()
         await final_queue.initialize()
         
         for task_id in task_ids:
@@ -162,7 +165,8 @@ async def test_retry_worker_edge_cases():
     
     try:
         config = QueueConfig(database_url=f"sqlite+aiosqlite:///{db_path}")
-        queue = WorkerQueue(config)
+        test_container = create_test_container(config)
+        queue = test_container.worker_queue()
         await queue.initialize()
         
         # Test 1: Task with max attempts reached (should be discarded)
@@ -192,7 +196,8 @@ async def test_retry_worker_edge_cases():
         await run_short_test()
         
         # Check that max attempts task was discarded
-        final_queue = WorkerQueue(config)
+        final_test_container = create_test_container(config)
+        final_queue = final_test_container.worker_queue()
         await final_queue.initialize()
         
         max_attempts_result = await final_queue.get_task("max-attempts-task")
