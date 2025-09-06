@@ -73,7 +73,8 @@ async def test_enqueue_dequeue(worker_queue):
     ]
     
     # Test enqueue
-    enqueued_count = await worker_queue.enqueue(tasks)
+    enqueued_ids = await worker_queue.enqueue(tasks)
+    enqueued_count = len(enqueued_ids)
     assert enqueued_count == 3, f"Expected 3 tasks enqueued, got {enqueued_count}"
     
     # Test dequeue
@@ -103,10 +104,15 @@ async def test_state_transitions(worker_queue):
     # Dequeue the task
     tasks = await worker_queue.dequeue(1)
     assert len(tasks) == 1
-    task_id = tasks[0].id
+    task = tasks[0]
+    task_id = task.id
+    
+    # Simulate task processing by updating items with response URLs
+    for item in task.items:
+        item.response_url = "data:audio/wav;base64,completed_audio_data"
     
     # Test mark_as_complete
-    completed_task = await worker_queue.mark_as_complete(task_id)
+    completed_task = await worker_queue.mark_as_complete(task)
     assert completed_task.state == TaskState.COMPLETED
     assert completed_task.finalized_at is not None
     
@@ -258,12 +264,13 @@ async def test_error_cases(worker_queue):
     
     # Test invalid state transitions
     with pytest.raises(TaskNotFoundError):
-        await worker_queue.mark_as_complete("non-existent-id")
+        non_existent_task = create_sample_task(task_id="non-existent-id")
+        await worker_queue.mark_as_complete(non_existent_task)
     
     # Test empty enqueue
-    empty_count = await worker_queue.enqueue([])
-    assert empty_count == 0
-    
+    empty_ids = await worker_queue.enqueue([])
+    assert len(empty_ids) == 0
+
     # Test dequeue with invalid size
     empty_dequeue = await worker_queue.dequeue(0)
     assert len(empty_dequeue) == 0

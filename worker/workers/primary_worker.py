@@ -128,7 +128,7 @@ class PrimaryWorker:
         try:
             success = await self.process_task(task)
             if success:
-                await self.queue.mark_as_complete(task.id)
+                await self.queue.mark_as_complete(task)
                 self.logger.info(f"Completed task {task.id}")
             else:
                 await self.queue.mark_as_retry(task.id, "Processing failed")

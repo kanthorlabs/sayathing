@@ -331,12 +331,12 @@ class WorkerQueue:
                 logger.error("Failed to retry tasks: %s", e)
                 raise QueueError(f"Failed to retry tasks: {e}")
 
-    async def mark_as_complete(self, task_id: str) -> Task:
+    async def mark_as_complete(self, task: Task) -> Task:
         """
-        Transition task from PROCESSING to COMPLETED.
+        Transition task from PROCESSING to COMPLETED with updated items.
         
         Args:
-            task_id: ID of the task to mark as complete
+            task: Task object to mark as complete (with updated items)
             
         Returns:
             Updated task
@@ -345,12 +345,35 @@ class WorkerQueue:
             TaskNotFoundError: If task is not found
             InvalidStateTransitionError: If task is not in PROCESSING state
         """
-        return await self._update_task_state(
-            task_id, 
-            TaskState.COMPLETED, 
-            expected_state=TaskState.PROCESSING,
-            finalize=True
-        )
+        async with self._get_session() as session:
+            # Get current task from database
+            result = await session.execute(
+                select(TaskModel).where(TaskModel.id == task.id)
+            )
+            task_model = result.scalar_one_or_none()
+            
+            if not task_model:
+                raise TaskNotFoundError(f"Task {task.id} not found")
+            
+            # Validate state transition
+            if task_model.state != TaskState.PROCESSING.value:
+                current_state = TaskState(task_model.state)
+                raise InvalidStateTransitionError(
+                    f"Cannot mark task {task.id} as complete: "
+                    f"expected PROCESSING, got {current_state.name}"
+                )
+            
+            # Update task with completed items and new state
+            current_time = self._current_timestamp_ms()
+            task_model.state = TaskState.COMPLETED.value
+            task_model.items = json.dumps([item.model_dump() for item in task.items])
+            task_model.finalized_at = current_time
+            task_model.updated_at = current_time
+            
+            await session.flush()
+            
+            logger.info("Marked task %s as complete with %d items", task.id, len(task.items))
+            return task_model.to_task()
 
     async def mark_as_retry(self, task_id: str, error: str) -> Task:
         """

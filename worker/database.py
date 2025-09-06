@@ -4,9 +4,8 @@ Database models and configuration for the worker queue system.
 import json
 from typing import List, Optional
 from sqlalchemy import Column, String, Integer, Text, Index, create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import sessionmaker
 
 from .task import Task, TaskItem, TaskState
 

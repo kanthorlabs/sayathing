@@ -15,19 +15,16 @@ class TextToSpeechRequest(BaseModel):
     text: str = Field(
         ...,
         description="The text to convert to speech",
-        example="Hello, world! How are you today?",
         min_length=1,
         max_length=10000
     )
     voice_id: str = Field(
         ...,
-        description="The voice identifier to use for synthesis. Use /voices endpoint to get available options.",
-        example="kokoro.af_heart"
+        description="The voice identifier to use for synthesis. Use /voices endpoint to get available options."
     )
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Additional metadata for the request (optional)",
-        example={"session_id": "abc123", "user_id": "user456"}
+        description="Additional metadata for the request (optional)"
     )
 
     model_config = ConfigDict(

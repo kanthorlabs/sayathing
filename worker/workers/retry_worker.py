@@ -155,7 +155,7 @@ class RetryWorker:
             
             success = await self.process_task(task)
             if success:
-                await self.queue.mark_as_complete(task.id)
+                await self.queue.mark_as_complete(task)
                 self.logger.info(f"Completed retry task {task.id} after {task.attempt_count} attempts")
             else:
                 await self.queue.mark_as_retry(task.id, "Retry processing failed")

@@ -10,7 +10,7 @@ This document outlines the implementation of a simple, reliable worker queue sys
 - `enqueue(tasks: List[Task])`: Bulk insert multiple tasks atomically
 - `dequeue(size: int = 5)`: Pull-based model to retrieve X tasks for processing  
 - `retry(size: int = 5, visibility_timeout: int = 3600, max_attempts: int = 3)`: Pull-based retry with configurable timeout
-- `mark_as_complete(task_id: str)`: Transition task from PROCESSING to COMPLETED
+- `mark_as_complete(task: Task)`: Transition task from PROCESSING to COMPLETED with updated items
 - `mark_as_retry(task_id: str, error: str)`: Transition task from PROCESSING to RETRYABLE with error logging
 - `mark_as_cancelled(task_id: str)`: Transition task from PENDING to CANCELLED
 - `mark_as_discarded(task_id: str)`: Transition task from PROCESSING to DISCARDED
