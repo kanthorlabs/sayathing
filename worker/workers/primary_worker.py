@@ -8,10 +8,10 @@ import json
 import time
 from typing import Optional, List
 
-from .queue import WorkerQueue
-from .task import Task, TaskItem
-from .config import QueueConfig
-from .database import DatabaseManager
+from ..queue import WorkerQueue
+from ..task import Task, TaskItem
+from ..config import QueueConfig, WorkerConfig
+from ..database import DatabaseManager
 from tts.tts import TextToSpeechRequest
 
 class PrimaryWorker:
@@ -27,24 +27,25 @@ class PrimaryWorker:
         self.logger = logging.getLogger(f"worker-{self.worker_id}")
         self.is_running = False
         self._shutdown_event = asyncio.Event()
-        self.queue: Optional[PrimaryWorkerQueue] = None
+        self.queue: Optional[WorkerQueue] = None
         self.db_manager: Optional[DatabaseManager] = None
         
         # Configuration from environment variables
-        self.config = QueueConfig.from_env()
-        self.poll_delay = int(os.getenv("WORKER_POLL_DELAY", "5"))  # seconds
-        self.batch_size = int(os.getenv("WORKER_BATCH_SIZE", "5"))
+        self.queue_config = QueueConfig.from_env()
+        self.worker_config = WorkerConfig.from_env()
+        self.poll_delay = self.worker_config.worker_poll_delay
+        self.batch_size = self.worker_config.worker_batch_size
         
     async def startup(self):
         """Initialize the worker and dependencies"""
         self.logger.info(f"Starting worker {self.worker_id}")
         
         # Initialize database manager
-        self.db_manager = DatabaseManager(self.config.database_url)
+        self.db_manager = DatabaseManager(self.queue_config.database_url)
         await self.db_manager.initialize()
         
         # Initialize queue
-        self.queue = WorkerQueue(self.config, self.db_manager)
+        self.queue = WorkerQueue(self.queue_config)
         
         self.is_running = True
         self.logger.info(f"Worker {self.worker_id} started successfully")
@@ -165,9 +166,8 @@ class PrimaryWorker:
                     # Execute TTS processing
                     tts_response = await tts_request.execute_async()
                     
-                    # Encode audio as base64 and update response_url
-                    audio_base64 = base64.b64encode(tts_response.audio).decode('utf-8')
-                    item.response_url = f"data:audio/wav;base64,{audio_base64}"
+                    # Use the audio_base64 property and update response_url
+                    item.response_url = f"data:audio/wav;base64,{tts_response.audio_base64}"
                     
                     self.logger.debug(f"Generated audio for task {task.id}, size: {len(tts_response.audio)} bytes")
                     

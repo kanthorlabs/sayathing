@@ -71,9 +71,14 @@ class TextToSpeechResponse(BaseModel):
         description="The synthesized audio data in WAV format, encoded as base64"
     )
 
+    @property
+    def audio_base64(self) -> str:
+        """Get the audio data as a base64-encoded string"""
+        return base64.b64encode(self.audio).decode("utf-8")
+
     @field_serializer("audio")
     def serialize_audio(self, v: bytes, _info):
-        return base64.b64encode(v).decode("utf-8")
+        return self.audio_base64
 
     request: TextToSpeechRequest = Field(
         ...,

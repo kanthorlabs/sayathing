@@ -11,7 +11,7 @@ import os
 
 from .voices import Voices, VOICE_SAMPLE
 from .engine_interface import TTSEngineInterface
-from server.config.async_config import AsyncConfig
+from server.config.config import Config
 
 
 # Custom exception classes
@@ -55,7 +55,7 @@ class KokoroEngine(TTSEngineInterface):
         
         # Initialize thread pool executor for async operations with configurable settings
         if KokoroEngine._executor is None:
-            config = AsyncConfig.get_tts_executor_config()
+            config = Config.get_tts_executor_config()
             KokoroEngine._executor = ThreadPoolExecutor(**config)
         
         # Initialize without synchronous preloading - async preloading will be done later
@@ -68,7 +68,7 @@ class KokoroEngine(TTSEngineInterface):
                 voice_name = voice_id.split(".")[1] if "." in voice_id else voice_id
                 
                 # Use the generate method to warm up the voice asynchronously with timeout
-                timeout = AsyncConfig.VOICE_PRELOAD_TIMEOUT
+                timeout = Config.VOICE_PRELOAD_TIMEOUT
                 
                 loop = asyncio.get_event_loop()
                 audio_bytes = await asyncio.wait_for(
@@ -125,7 +125,7 @@ class KokoroEngine(TTSEngineInterface):
         
         # Generate fresh audio for the requested text asynchronously with timeout
         try:
-            timeout = AsyncConfig.TTS_GENERATION_TIMEOUT
+            timeout = Config.TTS_GENERATION_TIMEOUT
             
             loop = asyncio.get_event_loop()
             return await asyncio.wait_for(
@@ -168,7 +168,7 @@ class KokoroEngine(TTSEngineInterface):
             import logging
             logging.debug(f"Sample for voice '{voice_id}' not preloaded, generating on-demand")
             
-            timeout = AsyncConfig.TTS_GENERATION_TIMEOUT
+            timeout = Config.TTS_GENERATION_TIMEOUT
             loop = asyncio.get_event_loop()
             sample = await asyncio.wait_for(
                 loop.run_in_executor(

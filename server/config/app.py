@@ -11,7 +11,6 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from tts import Engine
 from worker import WorkerQueue
-from .async_config import AsyncConfig
 
 # OpenAPI metadata
 def create_app() -> FastAPI:

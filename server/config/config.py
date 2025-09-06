@@ -6,9 +6,9 @@ These settings control the performance characteristics of async operations.
 import os
 from typing import Optional
 
-class AsyncConfig:
-    """Configuration for async TTS operations"""
-    
+class Config:
+    """Configuration for TTS operations"""
+
     # Thread pool settings for CPU-bound TTS operations
     TTS_THREAD_POOL_MAX_WORKERS: int = int(os.getenv("TTS_THREAD_POOL_MAX_WORKERS", "4"))
     

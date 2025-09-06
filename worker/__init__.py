@@ -7,8 +7,9 @@ with SQLAlchemy ORM for handling text-to-speech processing tasks.
 
 from .queue import WorkerQueue, QueueError, TaskNotFoundError, InvalidStateTransitionError
 from .task import Task, TaskItem, TaskState
-from .config import QueueConfig
+from .config import QueueConfig, WorkerConfig
 from .database import DatabaseManager, TaskModel
+from .workers import PrimaryWorker, RetryWorker
 
 __all__ = [
     "WorkerQueue",
@@ -19,6 +20,9 @@ __all__ = [
     "TaskItem", 
     "TaskState",
     "QueueConfig",
+    "WorkerConfig",
     "DatabaseManager",
     "TaskModel",
+    "PrimaryWorker",
+    "RetryWorker",
 ]

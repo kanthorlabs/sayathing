@@ -1,7 +1,7 @@
 import asyncio
 from fastapi import APIRouter, Query
 from tts import Engine, Voices, Voice
-from server.config.async_config import AsyncConfig
+from server.config.config import Config
 
 router = APIRouter()
 
@@ -65,7 +65,7 @@ async def list_voice(
         
         if include_samples:
             # Create semaphore to limit concurrent operations
-            max_concurrent = AsyncConfig.MAX_CONCURRENT_VOICE_SAMPLES
+            max_concurrent = Config.MAX_CONCURRENT_VOICE_SAMPLES
             
             semaphore = asyncio.Semaphore(max_concurrent)
             
