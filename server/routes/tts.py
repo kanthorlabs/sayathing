@@ -109,7 +109,7 @@ class PublishTasksResponse(BaseModel):
 )
 async def publish_tts_tasks(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
     items: List[TaskItem] = [
-        TaskItem(request=ti.request) for ti in body.tasks
+        TaskItem(request=ti, response_url="") for ti in body.tasks
     ]
     
     if not items:

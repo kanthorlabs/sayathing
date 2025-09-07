@@ -6,19 +6,45 @@ This project now uses pytest for comprehensive testing of the worker queue syste
 
 - `worker/test_comprehensive.py` - Comprehensive test suite covering all queue functionality
 - `worker/test_persistence.py` - Tests for database persistence across queue restarts
+- `test_integration.py` - Full integration tests (marked with `@pytest.mark.integration`)
+- `test_di.py` - Dependency injection container tests
+- `test_shared_db.py` - Shared database functionality tests
 
 ## Running Tests
 
 ### Quick Start
 ```bash
-# Run all tests
+# Run all tests (excluding long-running integration tests)
 make test
+
+# Run all tests including integration tests
+make test-integration
+
+# Run only integration tests
+make test-integration-only
 
 # Run with verbose output
 make test-verbose
 
-# Run with coverage report
+# Run with coverage report (excluding integration tests)
 make test-coverage
+
+# Run with coverage report including integration tests
+make test-coverage-all
+```
+
+### Integration Tests
+```bash
+# Run only integration tests
+make test-integration-only
+
+# Run all tests including integration tests
+make test-integration
+# or alternatively:
+make test-all
+
+# Skip integration tests explicitly (default behavior)
+make test
 ```
 
 ### Individual Test Suites
@@ -93,14 +119,56 @@ make test-parallel
 # Setup development environment
 make install-dev
 
-# Run tests during development
+# Run tests during development (excludes integration tests)
 make test
+
+# Run all tests including integration tests
+make test-integration
 
 # Check code quality
 make check  # Runs lint + tests
 
 # Clean up temporary files
 make clean
+```
+
+## Integration Test Configuration
+
+### Test Markers
+The project uses pytest markers to categorize tests:
+- `@pytest.mark.integration`: Marks long-running integration tests
+- Integration tests are **skipped by default** to speed up development workflow
+- Use `--integration` flag to include integration tests in the test run
+
+### Custom Pytest Flags
+- `--integration`: Enables integration tests (disabled by default)
+- Integration tests can take 60+ seconds to complete due to TTS processing
+
+### Integration Test Features
+- **Full End-to-End Testing**: Complete workflow from API to audio generation
+- **Multi-Worker Concurrency**: Tests 3 primary workers processing tasks simultaneously
+- **HTTP Server Integration**: Real API endpoints with request/response validation
+- **Realistic Workloads**: 10 API calls with 5-10 TTS requests each
+- **Error Handling**: Comprehensive API validation and worker error scenarios
+
+### Configuration Files
+- `conftest.py`: Custom pytest configuration and command-line options
+- `pyproject.toml`: Pytest settings including marker definitions
+- Integration tests marked with `@pytest.mark.integration` decorator
+
+### Running Integration Tests
+```bash
+# Run all tests including integration (full test suite)
+make test-integration
+
+# Run only integration tests
+make test-integration-only
+
+# Run specific integration test
+pytest test_integration.py::TestIntegration::test_full_integration_workflow --integration
+
+# Default behavior (skip integration tests)
+make test
 ```
 
 ## Performance Notes

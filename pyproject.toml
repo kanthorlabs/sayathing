@@ -15,6 +15,7 @@ dependencies = [
     "aiosqlite>=0.19.0",
     "ulid-py>=1.1.0",
     "dependency-injector>=4.41.0",
+    "orjson>=3.11.3",
 ]
 
 [dependency-groups]
@@ -22,6 +23,7 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
+    "httpx>=0.24.0",
 ]
 
 [tool.pytest.ini_options]
@@ -29,4 +31,7 @@ asyncio_mode = "auto"
 filterwarnings = [
     "ignore:Importing 'parser.split_arg_string' is deprecated:DeprecationWarning",
     "ignore:on_event is deprecated, use lifespan event handlers instead.",
+]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 ]

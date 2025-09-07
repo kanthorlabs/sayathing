@@ -1,14 +1,18 @@
 # Makefile for SayAThing Worker Queue Tests
-.PHONY: help test test-verbose test-comprehensive test-persistence test-coverage clean install install-dev lint format check
+.PHONY: help test test-verbose test-comprehensive test-persistence test-coverage test-coverage-all test-integration test-integration-only test-all clean install install-dev lint format check
 
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  test              - Run all tests"
+	@echo "  test              - Run all tests (excluding integration tests)"
+	@echo "  test-all          - Run all tests including integration tests"
+	@echo "  test-integration  - Run all tests including integration tests"
+	@echo "  test-integration-only - Run only integration tests"
 	@echo "  test-verbose      - Run all tests with verbose output"
 	@echo "  test-comprehensive - Run comprehensive tests only"
 	@echo "  test-persistence  - Run persistence tests only"
-	@echo "  test-coverage     - Run tests with coverage report"
+	@echo "  test-coverage     - Run tests with coverage report (excluding integration)"
+	@echo "  test-coverage-all - Run all tests with coverage report (including integration)"
 	@echo "  install           - Install production dependencies"
 	@echo "  install-dev       - Install development dependencies"
 	@echo "  lint              - Run linting checks"
@@ -18,12 +22,25 @@ help:
 
 # Test targets
 test:
-	@echo "Running all worker queue tests..."
-	python -m pytest worker/ -v
+	@echo "Running all tests (excluding integration tests)..."
+	@echo "⏱️  This should take ~15-30 seconds"
+	python -m pytest -v
+
+test-all: test-integration
+
+test-integration:
+	@echo "Running all tests including integration tests..."
+	@echo "⚠️  Integration tests may take 2-3 minutes due to TTS processing"
+	python -m pytest --integration -v
+
+test-integration-only:
+	@echo "Running integration tests only..."
+	@echo "⚠️  This may take 1-2 minutes due to TTS processing"
+	python -m pytest -m integration --integration -v
 
 test-verbose:
-	@echo "Running all worker queue tests with verbose output..."
-	python -m pytest worker/ -vvv --tb=long
+	@echo "Running all tests with verbose output (excluding integration tests)..."
+	python -m pytest -vvv --tb=long
 
 test-comprehensive:
 	@echo "Running comprehensive worker queue tests..."
@@ -34,8 +51,14 @@ test-persistence:
 	python -m pytest worker/test_persistence.py -v
 
 test-coverage:
-	@echo "Running tests with coverage report..."
-	python -m pytest worker/ --cov=worker --cov-report=html --cov-report=term-missing -v
+	@echo "Running tests with coverage report (excluding integration tests)..."
+	python -m pytest --cov=worker --cov=server --cov=tts --cov-report=html --cov-report=term-missing -v
+	@echo "Coverage report generated in htmlcov/"
+
+test-coverage-all:
+	@echo "Running all tests with coverage report (including integration tests)..."
+	@echo "⚠️  This may take 2-3 minutes due to integration tests"
+	python -m pytest --integration --cov=worker --cov=server --cov=tts --cov-report=html --cov-report=term-missing -v
 	@echo "Coverage report generated in htmlcov/"
 
 # Test specific patterns
