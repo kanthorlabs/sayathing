@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import asyncio
 import os
 from typing import List
+from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
@@ -13,6 +14,33 @@ from tts import Engine
 from container import container, initialize_container
 
 # OpenAPI metadata
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application lifespan events"""
+    # Startup
+    # Initialize the DI container first to ensure singleton database manager is created
+    await initialize_container()
+    
+    # Preload TTS engines (non-blocking) 
+    asyncio.create_task(Engine.preload_async())
+    
+    # Get worker queue from DI container (will use the singleton DatabaseManager)
+    app.state.worker_queue = container.worker_queue()
+    await app.state.worker_queue.initialize()
+    
+    yield
+    
+    # Shutdown
+    try:
+        # Use the Engine singleton to handle shutdown of all engines
+        Engine.shutdown()
+        # Close queue
+        if hasattr(app.state, "worker_queue"):
+            await app.state.worker_queue.close()
+            
+    except Exception as e:
+        pass  # Silently handle shutdown errors
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
     app = FastAPI(
@@ -42,8 +70,10 @@ def create_app() -> FastAPI:
                 "name": "voices",
                 "description": "Voice management and information",
             },
-        ]
-    , default_response_class=ORJSONResponse)
+        ],
+        default_response_class=ORJSONResponse,
+        lifespan=lifespan
+    )
 
     # --- Security & performance middleware ---
     # CORS: disabled by default; enable via CORS_ALLOW_ORIGINS env (comma-separated)
@@ -64,29 +94,4 @@ def create_app() -> FastAPI:
     if allowed_hosts:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
-    @app.on_event("startup")
-    async def startup_event():
-        # Initialize the DI container first to ensure singleton database manager is created
-        await initialize_container()
-        
-        # Preload TTS engines (non-blocking) 
-        asyncio.create_task(Engine.preload_async())
-        
-        # Get worker queue from DI container (will use the singleton DatabaseManager)
-        app.state.worker_queue = container.worker_queue()
-        await app.state.worker_queue.initialize()
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        """Cleanup resources on shutdown"""
-        try:
-            # Use the Engine singleton to handle shutdown of all engines
-            Engine.shutdown()
-            # Close queue
-            if hasattr(app.state, "worker_queue"):
-                await app.state.worker_queue.close()
-                
-        except Exception as e:
-            pass  # Silently handle shutdown errors
-    
     return app
