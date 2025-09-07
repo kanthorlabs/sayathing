@@ -1,6 +1,6 @@
 # Makefile for SayAThing Worker Queue Tests
-.PHONY: help test test-verbose test-comprehensive test-persistence test-coverage test-coverage-all test-integration test-integration-only test-all clean install install-dev lint lint-strict type-check format check
-
+.PHONY: help test test-verbose test-coverage test-coverage-all test-integration test-integration-only test-all clean install install-dev lint lint-strict type-check format check dev container
+ 
 # Default target
 help:
 	@echo "Available targets:"
@@ -66,7 +66,7 @@ install:
 install-dev:
 	@echo "Installing development dependencies..."
 	uv sync
-	uv add --dev pytest pytest-asyncio pytest-cov black flake8 mypy isort
+	uv add --dev pytest pytest-asyncio pytest-cov black flake8 mypy isort watchdog
 
 # Code quality
 lint:
@@ -124,3 +124,14 @@ test-report:
 	@echo "Generating test report..."
 	python -m pytest worker/ --html=report.html --self-contained-html -v
 	@echo "Test report generated: report.html"
+
+# Run dev server (for manual testing)
+dev:
+	@echo "Starting development server with hot reload..."
+	uv run python main-dev.py
+
+# Run in Podman container
+container:
+	@echo "Building and running in Podman container..."
+	podman build -t kanthorlabs/sayathing .
+	podman run --rm -p 8000:8000 kanthorlabs/sayathing

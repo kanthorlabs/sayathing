@@ -5,7 +5,9 @@ FROM python:3.12-slim as base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HF_HOME=/app/.cache/huggingface \
+    TORCH_HOME=/app/.cache/torch
 
 # Install system dependencies required for audio processing and compilation
 RUN apt-get update && apt-get install -y \
@@ -34,8 +36,10 @@ RUN uv sync --frozen --no-dev
 # Copy application code
 COPY . .
 
-# Create data directory and set proper permissions
+# Create data directory and model cache directories, set proper permissions
 RUN mkdir -p /app/data && \
+    mkdir -p /app/.cache/huggingface && \
+    mkdir -p /app/.cache/torch && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user

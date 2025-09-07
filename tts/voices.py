@@ -55,7 +55,7 @@ class Voices:
     @classmethod
     def _load_voices(cls) -> dict:
         """Load voice definitions from kokoro_voices.json"""
-        if cls._voices is not None:
+        if len(cls._voices) > 0:
             return cls._voices
 
         # Get the directory where this file is located
