@@ -28,4 +28,5 @@ dev = [
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore:Importing 'parser.split_arg_string' is deprecated:DeprecationWarning",
+    "ignore:on_event is deprecated, use lifespan event handlers instead.",
 ]
