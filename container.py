@@ -1,15 +1,18 @@
 """
-Dependency injection container for the worker system.
+Dependency injection container for the application.
 
 This module uses python-dependency-injector to manage dependencies
 and ensure proper singleton behavior for shared resources like DatabaseManager.
+
+This container is initialized once at the root level and can be safely
+imported and used by any module in the application.
 """
 
 from dependency_injector import containers, providers
 
-from .config import QueueConfig, WorkerConfig
-from .database import DatabaseManager
-from .queue import WorkerQueue
+from worker.config import QueueConfig, WorkerConfig
+from worker.database import DatabaseManager
+from worker.queue import WorkerQueue
 
 
 class Container(containers.DeclarativeContainer):
@@ -46,9 +49,6 @@ def create_test_container(queue_config: QueueConfig) -> Container:
     return test_container
 
 
-# Global container instance - this ensures all components use the same singleton instances
-container = Container()
-
 # Initialize the container to ensure all singletons are created
 async def initialize_container():
     """Initialize the container and its singletons"""
@@ -56,3 +56,7 @@ async def initialize_container():
     db_manager = container.database_manager()
     await db_manager.initialize()
     return db_manager
+
+
+# Global container instance - this ensures all components use the same singleton instances
+container = Container()

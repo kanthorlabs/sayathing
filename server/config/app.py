@@ -10,7 +10,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from tts import Engine
-from worker import container, initialize_container
+from container import container, initialize_container
 
 # OpenAPI metadata
 def create_app() -> FastAPI:

@@ -14,7 +14,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tts import TextToSpeechRequest
-from worker import WorkerQueue, Task, TaskItem, TaskState, QueueConfig, create_test_container
+from worker import WorkerQueue, Task, TaskItem, TaskState, QueueConfig
+from container import create_test_container
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

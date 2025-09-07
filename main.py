@@ -20,7 +20,7 @@ import uvicorn
 from server.http import app
 from worker.workers.primary_worker import PrimaryWorker
 from worker.workers.retry_worker import RetryWorker
-from worker import initialize_container, container
+from container import initialize_container, container
 
 
 class ServiceManager:

@@ -11,7 +11,8 @@ from pathlib import Path
 # Add the parent directory to the Python path to import modules
 sys.path.insert(0, str(Path(__file__).parent))
 
-from worker import container, create_test_container, QueueConfig, initialize_container
+from worker import QueueConfig
+from container import container, create_test_container, initialize_container
 
 
 async def test_di_setup():

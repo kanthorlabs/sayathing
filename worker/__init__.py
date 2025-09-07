@@ -10,7 +10,6 @@ from .task import Task, TaskItem, TaskState
 from .config import QueueConfig, WorkerConfig
 from .database import DatabaseManager, TaskModel
 from .workers import PrimaryWorker, RetryWorker
-from .container import container, create_test_container, initialize_container
 
 __all__ = [
     "WorkerQueue",
@@ -26,7 +25,4 @@ __all__ = [
     "TaskModel",
     "PrimaryWorker",
     "RetryWorker",
-    "container",
-    "create_test_container",
-    "initialize_container",
 ]

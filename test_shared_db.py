@@ -9,7 +9,7 @@ from pathlib import Path
 # Add the parent directory to the Python path to import modules
 sys.path.insert(0, str(Path(__file__).parent))
 
-from worker import container, initialize_container
+from container import container, initialize_container
 from server.config.app import create_app
 
 

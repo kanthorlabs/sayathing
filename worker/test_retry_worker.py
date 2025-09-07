@@ -19,7 +19,7 @@ from worker.queue import WorkerQueue
 from worker.task import Task, TaskItem, TaskState
 from worker.config import QueueConfig
 from worker.workers import RetryWorker
-from worker import create_test_container
+from container import create_test_container
 
 # Configure logging
 logging.basicConfig(

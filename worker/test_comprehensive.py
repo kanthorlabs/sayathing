@@ -18,9 +18,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tts import TextToSpeechRequest
 from worker import (
     WorkerQueue, Task, TaskItem, TaskState, QueueConfig,
-    QueueError, TaskNotFoundError, InvalidStateTransitionError,
-    create_test_container
+    QueueError, TaskNotFoundError, InvalidStateTransitionError
 )
+from container import create_test_container
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -26,3 +26,6 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore:Importing 'parser.split_arg_string' is deprecated:DeprecationWarning",
+]
