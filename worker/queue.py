@@ -322,7 +322,7 @@ class WorkerQueue:
                     tasks.append(task)
                     
                     # Log the action taken
-                    if task_model.state == TaskState.DISCARDED.value:
+                    if task_model.state == TaskState.DISCARDED.value:  # type: ignore
                         logger.debug("Auto-discarded task %s after %d attempts", task_model.id, task_model.attempt_count)
                     else:
                         retry_delay = task_model.schedule_at - current_time
@@ -360,24 +360,36 @@ class WorkerQueue:
                 raise TaskNotFoundError(f"Task {task.id} not found")
             
             # Validate state transition
-            if task_model.state != TaskState.PROCESSING.value:
-                current_state = TaskState(task_model.state)
+            if task_model.state != TaskState.PROCESSING.value:  # type: ignore
+                current_state = TaskState(task_model.state)  # type: ignore
                 raise InvalidStateTransitionError(
                     f"Cannot mark task {task.id} as complete: "
                     f"expected PROCESSING, got {current_state.name}"
                 )
             
-            # Update task with completed items and new state
+            # Update task using SQLAlchemy update statement
             current_time = self._current_timestamp_ms()
-            task_model.state = TaskState.COMPLETED.value
-            task_model.items = json.dumps([item.model_dump() for item in task.items])
-            task_model.finalized_at = current_time
-            task_model.updated_at = current_time
+            await session.execute(
+                update(TaskModel)
+                .where(TaskModel.id == task.id)
+                .values(
+                    state=TaskState.COMPLETED.value,
+                    items=json.dumps([item.model_dump() for item in task.items]),
+                    finalized_at=current_time,
+                    updated_at=current_time
+                )
+            )
             
             await session.flush()
             
+            # Fetch updated task
+            result = await session.execute(
+                select(TaskModel).where(TaskModel.id == task.id)
+            )
+            updated_task_model = result.scalar_one()
+            
             logger.info("Marked task %s as complete with %d items", task.id, len(task.items))
-            return task_model.to_task()
+            return updated_task_model.to_task()
 
     async def mark_as_retry(self, task_id: str, error: str) -> Task:
         """
@@ -404,26 +416,38 @@ class WorkerQueue:
             if not task_model:
                 raise TaskNotFoundError(f"Task {task_id} not found")
             
-            if task_model.state != TaskState.PROCESSING.value:
+            if task_model.state != TaskState.PROCESSING.value:  # type: ignore
                 raise InvalidStateTransitionError(
-                    f"Cannot mark task {task_id} as retry: expected PROCESSING, got {TaskState(task_model.state).name}"
+                    f"Cannot mark task {task_id} as retry: expected PROCESSING, got {TaskState(task_model.state).name}"  # type: ignore
                 )
             
-            # Update task with error logging
-            current_time = self._current_timestamp_ms()
-            
             # Parse existing errors and add new one
-            existing_errors = json.loads(task_model.attempted_error) if task_model.attempted_error else []
+            existing_errors_json = task_model.attempted_error or "[]"  # type: ignore
+            existing_errors = json.loads(existing_errors_json)  # type: ignore
             existing_errors.append(error)
             
-            task_model.state = TaskState.RETRYABLE.value
-            task_model.attempted_error = json.dumps(existing_errors)
-            task_model.updated_at = current_time
+            # Update task using SQLAlchemy update statement
+            current_time = self._current_timestamp_ms()
+            await session.execute(
+                update(TaskModel)
+                .where(TaskModel.id == task_id)
+                .values(
+                    state=TaskState.RETRYABLE.value,
+                    attempted_error=json.dumps(existing_errors),
+                    updated_at=current_time
+                )
+            )
             
             await session.flush()
             
+            # Fetch updated task
+            result = await session.execute(
+                select(TaskModel).where(TaskModel.id == task_id)
+            )
+            updated_task_model = result.scalar_one()
+            
             logger.info("Marked task %s for retry with error: %s", task_id, error)
-            return task_model.to_task()
+            return updated_task_model.to_task()
 
     async def mark_as_cancelled(self, task_id: str) -> Task:
         """
@@ -523,29 +547,44 @@ class WorkerQueue:
             if not task_model:
                 raise TaskNotFoundError(f"Task {task_id} not found")
             
-            # Validate state transition if expected state is provided
-            if expected_state and task_model.state != expected_state.value:
-                current_state = TaskState(task_model.state)
-                raise InvalidStateTransitionError(
-                    f"Cannot transition task {task_id} to {new_state.name}: "
-                    f"expected {expected_state.name}, got {current_state.name}"
-                )
-            
-            # Update task state
-            current_time = self._current_timestamp_ms()
-            task_model.state = new_state.value
-            task_model.updated_at = current_time
-            
-            if finalize:
-                task_model.finalized_at = current_time
-            
-            if reset_schedule:
-                task_model.schedule_at = current_time
-            
-            await session.flush()
-            
-            logger.info("Updated task %s state to %s", task_id, new_state.name)
-            return task_model.to_task()
+        # Validate state transition if expected state is provided
+        if expected_state and task_model.state != expected_state.value:  # type: ignore
+            current_state = TaskState(task_model.state)  # type: ignore
+            raise InvalidStateTransitionError(
+                f"Cannot transition task {task_id} to {new_state.name}: "
+                f"expected {expected_state.name}, got {current_state.name}"
+            )
+        
+        # Prepare update values
+        current_time = self._current_timestamp_ms()
+        update_values = {
+            'state': new_state.value,
+            'updated_at': current_time
+        }
+        
+        if finalize:
+            update_values['finalized_at'] = current_time
+        
+        if reset_schedule:
+            update_values['schedule_at'] = current_time
+        
+        # Update task using SQLAlchemy update statement
+        await session.execute(
+            update(TaskModel)
+            .where(TaskModel.id == task_id)
+            .values(**update_values)
+        )
+        
+        await session.flush()
+        
+        # Fetch updated task
+        result = await session.execute(
+            select(TaskModel).where(TaskModel.id == task_id)
+        )
+        updated_task_model = result.scalar_one()
+        
+        logger.info("Updated task %s state to %s", task_id, new_state.name)
+        return updated_task_model.to_task()
 
     async def get_task(self, task_id: str) -> Optional[Task]:
         """

@@ -78,7 +78,8 @@ class RetryWorker:
         """
         if not self.is_running:
             await self.startup()
-            
+
+        assert self.queue is not None, "Queue should be initialized before running"
         self.logger.info(f"Retry worker {self.worker_id} entering main loop")
         
         try:
@@ -149,6 +150,8 @@ class RetryWorker:
         
     async def _process_single_task(self, task: Task):
         """Process a single task with proper error handling"""
+        assert self.queue is not None, "Queue should be initialized before processing tasks"
+        
         try:
             # First, we need to claim the task by moving it to PROCESSING state
             # since the retry() method only moves it to PENDING
@@ -176,6 +179,8 @@ class RetryWorker:
         This is necessary because retry() moves tasks to PENDING, but we need
         them in PROCESSING state to mark them as complete or retry.
         """
+        assert self.queue is not None, "Queue should be initialized before claiming tasks"
+        
         try:
             # Use the queue's internal update method to transition from PENDING to PROCESSING
             await self.queue._update_task_state(
@@ -267,5 +272,4 @@ async def main():
 
 if __name__ == "__main__":
     # Entry point for running as a script or in a Docker container
-    asyncio.run(main())
     asyncio.run(main())

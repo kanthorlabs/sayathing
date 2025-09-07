@@ -72,6 +72,7 @@ class PrimaryWorker:
         if not self.is_running:
             await self.startup()
             
+        assert self.queue is not None, "Queue should be initialized before running"
         self.logger.info(f"Worker {self.worker_id} entering main loop")
         
         try:
@@ -127,6 +128,8 @@ class PrimaryWorker:
         
     async def _process_single_task(self, task: Task):
         """Process a single task with proper error handling"""
+        assert self.queue is not None, "Queue should be initialized before processing tasks"
+        
         try:
             success = await self.process_task(task)
             if success:
