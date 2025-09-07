@@ -1,9 +1,11 @@
 """
 Quick test to verify dependency injection is working correctly.
 """
+
 import pytest
-from worker import QueueConfig
+
 from container import container, create_test_container, initialize_container
+from worker import QueueConfig
 
 
 @pytest.fixture
@@ -28,10 +30,10 @@ class TestDependencyInjection:
         global_queue2 = container.worker_queue()
         global_db_manager1 = container.database_manager()
         global_db_manager2 = container.database_manager()
-        
+
         # DatabaseManager should be singleton
         assert global_db_manager1 is global_db_manager2, "DatabaseManager should be singleton"
-        
+
         # Both queues should use the same database manager
         assert global_queue1.db_manager is global_db_manager1, "Queue 1 should use singleton DatabaseManager"
         assert global_queue2.db_manager is global_db_manager1, "Queue 2 should use singleton DatabaseManager"
@@ -41,36 +43,38 @@ class TestDependencyInjection:
         """Test that DatabaseManager is singleton within test container."""
         test_config = QueueConfig(database_url="sqlite+aiosqlite:///:memory:")
         test_container = create_test_container(test_config)
-        
+
         test_db_manager1 = test_container.database_manager()
         test_db_manager2 = test_container.database_manager()
-        
+
         # DatabaseManager should be singleton within test container
         assert test_db_manager1 is test_db_manager2, "DatabaseManager should be singleton in test container"
 
     async def test_different_containers_have_different_instances(self, initialized_container):
         """Test that global and test containers have different DatabaseManager instances."""
         global_db_manager = container.database_manager()
-        
+
         test_config = QueueConfig(database_url="sqlite+aiosqlite:///:memory:")
         test_container = create_test_container(test_config)
         test_db_manager = test_container.database_manager()
-        
+
         # Global and test containers should have different instances
-        assert global_db_manager is not test_db_manager, "Different containers should have different DatabaseManager instances"
+        assert (
+            global_db_manager is not test_db_manager
+        ), "Different containers should have different DatabaseManager instances"
 
     async def test_queue_initialization_and_injection(self):
         """Test that queue initializes and uses injected DatabaseManager correctly."""
         test_config = QueueConfig(database_url="sqlite+aiosqlite:///:memory:")
         test_container = create_test_container(test_config)
-        
+
         test_queue = test_container.worker_queue()
         test_db_manager = test_container.database_manager()
-        
+
         # Queue initialization
         await test_queue.initialize()
-        
+
         # Database manager is properly injected
         assert test_queue.db_manager is test_db_manager, "Queue should use the injected DatabaseManager"
-        
+
         await test_queue.close()

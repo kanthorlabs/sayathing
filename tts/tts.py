@@ -1,46 +1,35 @@
-import base64
 import asyncio
+import base64
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field, field_serializer, ConfigDict
-from enum import Enum
 
-from .kokoro_engine import KokoroEngine
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
 from .engine_interface import TTSEngineInterface
+from .kokoro_engine import KokoroEngine
+
 
 class TextToSpeechRequest(BaseModel):
     """
     Represents a request to synthesize text into speech.
     """
-    
-    text: str = Field(
-        ...,
-        description="The text to convert to speech",
-        min_length=1,
-        max_length=10000
-    )
+
+    text: str = Field(..., description="The text to convert to speech", min_length=1, max_length=10000)
     voice_id: str = Field(
-        ...,
-        description="The voice identifier to use for synthesis. Use /voices endpoint to get available options."
+        ..., description="The voice identifier to use for synthesis. Use /voices endpoint to get available options."
     )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional metadata for the request (optional)"
-    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata for the request (optional)")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "text": "Hello, world! This is a test of the text-to-speech system.",
                 "voice_id": "kokoro.af_heart",
-                "metadata": {
-                    "session_id": "demo_session_123",
-                    "timestamp": "2025-09-02T12:00:00Z"
-                }
+                "metadata": {"session_id": "demo_session_123", "timestamp": "2025-09-02T12:00:00Z"},
             }
         }
     )
 
-    async def execute_async(self) -> 'TextToSpeechResponse':
+    async def execute_async(self) -> "TextToSpeechResponse":
         """Asynchronous execution for better performance"""
         engine = Engine.from_voice_id(self.voice_id)
         audio = await engine.generate_async(self.text, self.voice_id)
@@ -53,20 +42,19 @@ class TextToSpeechRequest(BaseModel):
         return self.model_dump_json()
 
     @classmethod
-    def from_json(cls, json_string: str) -> 'TextToSpeechRequest':
+    def from_json(cls, json_string: str) -> "TextToSpeechRequest":
         """
         Parses a JSON string into a TextToSpeechRequest object.
         """
         return cls.model_validate_json(json_string)
 
+
 class TextToSpeechResponse(BaseModel):
     """
     Represents the response from a text-to-speech synthesis.
     """
-    audio: bytes = Field(
-        ...,
-        description="The synthesized audio data in WAV format, encoded as base64"
-    )
+
+    audio: bytes = Field(..., description="The synthesized audio data in WAV format, encoded as base64")
 
     @property
     def audio_base64(self) -> str:
@@ -77,10 +65,7 @@ class TextToSpeechResponse(BaseModel):
     def serialize_audio(self, v: bytes, _info):
         return self.audio_base64
 
-    request: TextToSpeechRequest = Field(
-        ...,
-        description="Echo of the original request for reference"
-    )
+    request: TextToSpeechRequest = Field(..., description="Echo of the original request for reference")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -89,8 +74,8 @@ class TextToSpeechResponse(BaseModel):
                 "request": {
                     "text": "Hello, world! This is a test.",
                     "voice_id": "kokoro.af_heart",
-                    "metadata": {"session_id": "demo_123"}
-                }
+                    "metadata": {"session_id": "demo_123"},
+                },
             }
         }
     )
@@ -100,6 +85,7 @@ class TextToSpeechResponse(BaseModel):
         Converts a TextToSpeechResponse object into a JSON string.
         """
         return self.model_dump_json()
+
 
 class Engine:
     _instance = None
@@ -114,7 +100,7 @@ class Engine:
     def __init__(self):
         if Engine._initialized:
             return
-        
+
         self._initialize_engines()
         Engine._initialized = True
 
@@ -122,8 +108,8 @@ class Engine:
         """Initialize all available engine instances"""
         # Initialize Kokoro engine
         kokoro_engine = KokoroEngine.get_instance()
-        self._engines['kokoro'] = kokoro_engine
-        
+        self._engines["kokoro"] = kokoro_engine
+
         # Add other engines here as they become available
         # self._engines['other_engine'] = OtherEngine.get_instance()
 
@@ -131,15 +117,13 @@ class Engine:
     async def preload_async(cls):
         """Asynchronous preloading of all engines for better startup performance"""
         instance = cls.get_instance()
-        
+
         # Preload all engines concurrently
-        tasks = [
-            engine.preload_async() for engine in instance._engines.values()
-        ]
+        tasks = [engine.preload_async() for engine in instance._engines.values()]
         await asyncio.gather(*tasks, return_exceptions=True)
 
     @classmethod
-    def get_instance(cls) -> 'Engine':
+    def get_instance(cls) -> "Engine":
         """Get the singleton instance of Engine"""
         if cls._instance is None:
             cls._instance = cls()
@@ -149,23 +133,23 @@ class Engine:
     def from_voice_id(cls, voice_id: str) -> TTSEngineInterface:
         """Get engine instance based on voice_id"""
         instance = cls.get_instance()
-        
+
         # Determine which engine to use based on voice_id prefix
-        if voice_id.startswith('kokoro.'):
-            return instance._engines['kokoro']
-        
+        if voice_id.startswith("kokoro."):
+            return instance._engines["kokoro"]
+
         # Add logic for other engines as they become available
         # elif voice_id.startswith('other.'):
         #     return instance._engines['other_engine']
-        
+
         # Default to kokoro for backward compatibility
-        return instance._engines['kokoro']
+        return instance._engines["kokoro"]
 
     @classmethod
     async def get_sample_async(cls, voice_id: str) -> Optional[bytes]:
         """Asynchronous version of get_sample"""
         instance = cls.get_instance()
-        return await instance._engines['kokoro'].get_sample_async(voice_id)
+        return await instance._engines["kokoro"].get_sample_async(voice_id)
 
     async def generate_async(self, text: str, voice_id: str) -> bytes:
         """Asynchronous generate method"""
@@ -177,10 +161,10 @@ class Engine:
     def shutdown(cls):
         """Shutdown all engines and cleanup resources"""
         instance = cls.get_instance()
-        
+
         # Shutdown all engines - they all implement the shutdown method from the interface
         for engine_name, engine in instance._engines.items():
             try:
                 engine.shutdown()
-            except Exception as e:
+            except Exception:
                 pass  # Silently handle shutdown errors

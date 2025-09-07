@@ -17,28 +17,17 @@ from worker.queue import WorkerQueue
 
 class Container(containers.DeclarativeContainer):
     """Main dependency injection container"""
-    
+
     # Configuration providers
-    queue_config = providers.Singleton(
-        QueueConfig.from_env
-    )
-    
-    worker_config = providers.Singleton(
-        WorkerConfig.from_env
-    )
-    
+    queue_config = providers.Singleton(QueueConfig.from_env)
+
+    worker_config = providers.Singleton(WorkerConfig.from_env)
+
     # Database manager as singleton - this ensures only one instance across the entire app
-    database_manager = providers.Singleton(
-        DatabaseManager,
-        database_url=queue_config.provided.database_url
-    )
-    
+    database_manager = providers.Singleton(DatabaseManager, database_url=queue_config.provided.database_url)
+
     # Worker queue with injected database manager
-    worker_queue = providers.Factory(
-        WorkerQueue,
-        config=queue_config,
-        database_manager=database_manager
-    )
+    worker_queue = providers.Factory(WorkerQueue, config=queue_config, database_manager=database_manager)
 
 
 def create_test_container(queue_config: QueueConfig) -> Container:

@@ -1,5 +1,5 @@
 # Makefile for SayAThing Worker Queue Tests
-.PHONY: help test test-verbose test-comprehensive test-persistence test-coverage test-coverage-all test-integration test-integration-only test-all clean install install-dev lint format check
+.PHONY: help test test-verbose test-comprehensive test-persistence test-coverage test-coverage-all test-integration test-integration-only test-all clean install install-dev lint lint-strict type-check format check
 
 # Default target
 help:
@@ -15,7 +15,9 @@ help:
 	@echo "  test-coverage-all - Run all tests with coverage report (including integration)"
 	@echo "  install           - Install production dependencies"
 	@echo "  install-dev       - Install development dependencies"
-	@echo "  lint              - Run linting checks"
+	@echo "  lint              - Run linting checks (code style only)"
+	@echo "  lint-strict       - Run strict linting checks (including type checking)"
+	@echo "  type-check        - Run type checking only"
 	@echo "  format            - Format code"
 	@echo "  check             - Run all checks (lint + tests)"
 	@echo "  clean             - Clean up temporary files"
@@ -74,20 +76,26 @@ install:
 install-dev:
 	@echo "Installing development dependencies..."
 	uv sync
-	uv add --dev pytest pytest-asyncio pytest-cov
+	uv add --dev pytest pytest-asyncio pytest-cov black flake8 mypy isort
 
 # Code quality
 lint:
 	@echo "Running linting checks..."
-	python -m flake8 worker/ --max-line-length=120 --ignore=E203,W503
-	python -m mypy worker/ --ignore-missing-imports
+	python -m flake8 server/ tts/ worker/ *.py --max-line-length=140 --ignore=W293,E402
+	@echo "✅ Linting checks passed!"
+
+lint-strict:
+	@echo "Running strict linting checks (including type checking)..."
+	python -m flake8 server/ tts/ worker/ *.py --max-line-length=140 --ignore=W293,E402
+	python -m mypy server/ tts/ worker/ --ignore-missing-imports --explicit-package-bases
+	@echo "✅ Strict linting checks passed!"
 
 format:
 	@echo "Formatting code..."
-	python -m black worker/ --line-length=120
-	python -m isort worker/
+	python -m black server/ tts/ worker/ *.py --line-length=120
+	python -m isort server/ tts/ worker/ *.py
 
-check: lint test
+check: format lint test
 	@echo "All checks passed!"
 
 # Cleanup

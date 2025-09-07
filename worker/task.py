@@ -1,6 +1,8 @@
-from typing import List, Optional, Any
 from enum import Enum
+from typing import Any, List, Optional
+
 from pydantic import BaseModel
+
 
 class TaskState(Enum):
     # Discarded is the state for tasks that have errored enough times
@@ -21,6 +23,7 @@ class TaskState(Enum):
     # Retryable is the state for tasks that have errored, but will be retried.
     RETRYABLE = 101
 
+
 class TaskItem(BaseModel):
     request: Any
     response_url: str
@@ -32,11 +35,12 @@ class TaskItem(BaseModel):
         return self.model_dump_json()
 
     @classmethod
-    def from_json(cls, json_string: str) -> 'TaskItem':
+    def from_json(cls, json_string: str) -> "TaskItem":
         """
         Parses a JSON string into a TaskItem object.
         """
         return cls.model_validate_json(json_string)
+
 
 class Task(BaseModel):
     id: str
@@ -57,7 +61,7 @@ class Task(BaseModel):
         return self.model_dump_json()
 
     @classmethod
-    def from_json(cls, json_string: str) -> 'Task':
+    def from_json(cls, json_string: str) -> "Task":
         """
         Parses a JSON string into a Task object.
         """

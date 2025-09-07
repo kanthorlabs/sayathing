@@ -1,17 +1,16 @@
-from fastapi import FastAPI
 import asyncio
 import os
-from typing import List
 from contextlib import asynccontextmanager
+from typing import List
 
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import ORJSONResponse
-from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from tts import Engine
 from container import container, initialize_container
+from tts import Engine
+
 
 # OpenAPI metadata
 @asynccontextmanager
@@ -20,16 +19,16 @@ async def lifespan(app: FastAPI):
     # Startup
     # Initialize the DI container first to ensure singleton database manager is created
     await initialize_container()
-    
-    # Preload TTS engines (non-blocking) 
+
+    # Preload TTS engines (non-blocking)
     asyncio.create_task(Engine.preload_async())
-    
+
     # Get worker queue from DI container (will use the singleton DatabaseManager)
     app.state.worker_queue = container.worker_queue()
     await app.state.worker_queue.initialize()
-    
+
     yield
-    
+
     # Shutdown
     try:
         # Use the Engine singleton to handle shutdown of all engines
@@ -37,9 +36,10 @@ async def lifespan(app: FastAPI):
         # Close queue
         if hasattr(app.state, "worker_queue"):
             await app.state.worker_queue.close()
-            
-    except Exception as e:
+
+    except Exception:
         pass  # Silently handle shutdown errors
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
@@ -72,7 +72,7 @@ def create_app() -> FastAPI:
             },
         ],
         default_response_class=ORJSONResponse,
-        lifespan=lifespan
+        lifespan=lifespan,
     )
 
     # --- Security & performance middleware ---
@@ -85,7 +85,7 @@ def create_app() -> FastAPI:
             allow_origins=allow_origins,
             allow_credentials=True,
             allow_methods=["GET", "POST", "OPTIONS"],
-            allow_headers=["*"]
+            allow_headers=["*"],
         )
 
     # Trusted hosts: restrict Host header (safe defaults for local dev)

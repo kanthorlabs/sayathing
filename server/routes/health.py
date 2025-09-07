@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+
 from fastapi import APIRouter
 
 router = APIRouter()
+
 
 @router.get(
     "/healthz",
@@ -13,20 +15,15 @@ router = APIRouter()
         200: {
             "description": "Service is healthy",
             "content": {
-                "application/json": {
-                    "example": {
-                        "version": "25.9.1",
-                        "timestamp": "2025-09-02T12:00:00.000Z"
-                    }
-                }
-            }
+                "application/json": {"example": {"version": "25.9.1", "timestamp": "2025-09-02T12:00:00.000Z"}}
+            },
         }
-    }
+    },
 )
 async def healthz():
     """
     Check the health status of the TTS service.
-    
+
     Returns basic service information including:
     - Current version number
     - Current UTC timestamp

@@ -1,13 +1,16 @@
-from fastapi import APIRouter, status, Request
-from pydantic import BaseModel, Field
 from typing import List
+
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, Field
+
 from tts import TextToSpeechRequest, TextToSpeechResponse
-from worker import TaskItem, Task, TaskState
+from worker import Task, TaskItem, TaskState
 
 router = APIRouter()
 
+
 @router.post(
-    "/tts", 
+    "/tts",
     response_model=TextToSpeechResponse,
     tags=["tts"],
     summary="Convert Text to Speech",
@@ -20,57 +23,41 @@ router = APIRouter()
                 "application/json": {
                     "example": {
                         "audio": "UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqF...",
-                        "request": {
-                            "text": "Hello, world!",
-                            "voice_id": "kokoro.af_heart",
-                            "metadata": {}
-                        }
+                        "request": {"text": "Hello, world!", "voice_id": "kokoro.af_heart", "metadata": {}},
                     }
                 }
-            }
+            },
         },
         400: {
             "description": "Invalid request parameters",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Invalid voice_id provided"
-                    }
-                }
-            }
+            "content": {"application/json": {"example": {"detail": "Invalid voice_id provided"}}},
         },
         500: {
             "description": "Internal server error during synthesis",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Failed to generate speech audio"
-                    }
-                }
-            }
-        }
-    }
+            "content": {"application/json": {"example": {"detail": "Failed to generate speech audio"}}},
+        },
+    },
 )
 async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
     """
     Convert text to speech using the specified voice.
-    
+
     **Parameters:**
     - **text**: The text to convert to speech (required)
     - **voice_id**: The voice identifier to use for synthesis (required)
     - **metadata**: Additional metadata for the request (optional)
-    
+
     **Voice IDs:**
     Use one of the available voice identifiers. Examples:
     - `kokoro.af_heart` - American Female, warm and friendly
     - `kokoro.am-adam` - American Male, clear and professional
     - `kokoro.bf-emma` - British Female, elegant and refined
     - `kokoro.bm-george` - British Male, authoritative and clear
-    
+
     **Returns:**
     - **audio**: Base64-encoded audio data (WAV format)
     - **request**: Echo of the original request for reference
-    
+
     **Example Usage:**
     ```json
     {
@@ -80,11 +67,11 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
     }
     ```
     """
-    
+
     try:
         response = await request.execute_async()
         return response
-    except Exception as e:
+    except Exception:
         raise
 
 
@@ -108,13 +95,11 @@ class PublishTasksResponse(BaseModel):
     },
 )
 async def publish_tts_tasks(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
-    items: List[TaskItem] = [
-        TaskItem(request=ti, response_url="") for ti in body.tasks
-    ]
-    
+    items: List[TaskItem] = [TaskItem(request=ti, response_url="") for ti in body.tasks]
+
     if not items:
         return PublishTasksResponse(task_ids=[])
-    
+
     # Create a single task containing all items
     task = Task(
         id="",  # let queue assign ULID
@@ -124,7 +109,7 @@ async def publish_tts_tasks(req: Request, body: PublishTasksRequest) -> PublishT
         created_at=0,
         updated_at=0,
     )
-    
+
     worker_queue = req.app.state.worker_queue  # type: ignore[attr-defined]
     task_ids = await worker_queue.enqueue([task])
     return PublishTasksResponse(task_ids=task_ids)

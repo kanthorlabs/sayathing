@@ -1,36 +1,44 @@
 """
 Database models and configuration for the worker queue system.
 """
+
 import json
-from typing import List, Optional
-from sqlalchemy import Column, String, Integer, Text, Index, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from typing import Optional
+
+from sqlalchemy import Index, Integer, String, Text
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .task import Task, TaskItem, TaskState
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models"""
+
+    pass
 
 
 class TaskModel(Base):
     """SQLAlchemy model for tasks table"""
+
     __tablename__ = "tasks"
 
-    id = Column(String, primary_key=True)
-    state = Column(Integer, nullable=False)
-    schedule_at = Column(Integer, nullable=False)
-    attempt_count = Column(Integer, default=0)
-    attempted_at = Column(Integer, nullable=True)
-    attempted_error = Column(Text, nullable=True)  # JSON array of error messages
-    finalized_at = Column(Integer, nullable=True)
-    items = Column(Text, nullable=False)  # JSON serialized TaskItem list
-    created_at = Column(Integer, nullable=False)
-    updated_at = Column(Integer, nullable=False)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    state: Mapped[int] = mapped_column(Integer, nullable=False)
+    schedule_at: Mapped[int] = mapped_column(Integer, nullable=False)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    attempted_at: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    attempted_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON array of error messages
+    finalized_at: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    items: Mapped[str] = mapped_column(Text, nullable=False)  # JSON serialized TaskItem list
+    created_at: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_at: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Indexes for performance
     __table_args__ = (
-        Index('idx_tasks_state_schedule', 'state', 'schedule_at'),
-        Index('idx_tasks_created', 'created_at'),
+        Index("idx_tasks_state_schedule", "state", "schedule_at"),
+        Index("idx_tasks_created", "created_at"),
     )
 
     def to_task(self) -> Task:
@@ -38,10 +46,10 @@ class TaskModel(Base):
         # Parse items JSON
         items_data = json.loads(self.items) if self.items else []
         items = [TaskItem.model_validate(item) for item in items_data]
-        
+
         # Parse attempted_error JSON
         attempted_error = json.loads(self.attempted_error) if self.attempted_error else []
-        
+
         return Task(
             id=self.id,
             state=TaskState(self.state),
@@ -52,7 +60,7 @@ class TaskModel(Base):
             finalized_at=self.finalized_at,
             items=items,
             created_at=self.created_at,
-            updated_at=self.updated_at
+            updated_at=self.updated_at,
         )
 
     @classmethod
@@ -60,10 +68,10 @@ class TaskModel(Base):
         """Convert Pydantic Task to SQLAlchemy model"""
         # Serialize items to JSON
         items_json = json.dumps([item.model_dump() for item in task.items])
-        
+
         # Serialize attempted_error to JSON
         attempted_error_json = json.dumps(task.attempted_error) if task.attempted_error else None
-        
+
         return cls(
             id=task.id,
             state=task.state.value,
@@ -74,21 +82,17 @@ class TaskModel(Base):
             finalized_at=task.finalized_at,
             items=items_json,
             created_at=task.created_at,
-            updated_at=task.updated_at
+            updated_at=task.updated_at,
         )
 
 
 class DatabaseManager:
     """Manages database connections and session creation"""
-    
+
     def __init__(self, database_url: str):
         self.database_url = database_url
         self.async_engine = create_async_engine(database_url, echo=False)
-        self.async_session_factory = async_sessionmaker(
-            self.async_engine, 
-            class_=AsyncSession,
-            expire_on_commit=False
-        )
+        self.async_session_factory = async_sessionmaker(self.async_engine, class_=AsyncSession, expire_on_commit=False)
 
     async def create_tables(self):
         """Create all tables if they don't exist"""
