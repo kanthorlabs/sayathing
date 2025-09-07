@@ -45,9 +45,7 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
     app = FastAPI(
         title="SayAThing TTS API",
-        description="""
-        A high-quality Text-to-Speech (TTS) API
-        """,
+        description="A high-quality Text-to-Speech (TTS) API",
         version="25.9.1",
         contact={
             "name": "Kanthor Labs",

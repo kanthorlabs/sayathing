@@ -191,16 +191,13 @@ def create_parser() -> argparse.ArgumentParser:
         epilog="""
 Examples:
   # Run HTTP server only
-  python main.py --no-workers
+  python main.py --primary-workers 0 --retry-workers 0
   
   # Run workers only (no HTTP server)
   python main.py --no-http --primary-workers 2 --retry-workers 1
   
   # Run full service with custom worker counts
   python main.py --primary-workers 4 --retry-workers 2
-  
-  # Run with minimal configuration
-  python main.py --primary-workers 0 --retry-workers 0
         """,
     )
 
@@ -214,12 +211,6 @@ Examples:
 
     parser.add_argument(
         "--retry-workers", type=int, default=1, help="Number of retry workers to spawn (default: 1, minimum: 0)"
-    )
-
-    parser.add_argument(
-        "--no-workers",
-        action="store_true",
-        help="Disable all workers (equivalent to --primary-workers 0 --retry-workers 0)",
     )
 
     # Logging configuration
@@ -244,13 +235,8 @@ async def main():
 
     # Determine service configuration
     enable_http = not args.no_http
-
-    if args.no_workers:
-        primary_workers = 0
-        retry_workers = 0
-    else:
-        primary_workers = max(0, args.primary_workers)
-        retry_workers = max(0, args.retry_workers)
+    primary_workers = max(0, args.primary_workers)
+    retry_workers = max(0, args.retry_workers)
 
     # Validate configuration
     if not enable_http and primary_workers == 0 and retry_workers == 0:
@@ -274,11 +260,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Check if we're running in Python 3.12+
-    if sys.version_info < (3, 12):
-        print("ERROR: This application requires Python 3.12 or higher", file=sys.stderr)
-        sys.exit(1)
-
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
@@ -286,3 +267,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Fatal error: {e}", file=sys.stderr)
         sys.exit(1)
+        logger.info("Service manager shutdown complete")
+

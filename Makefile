@@ -9,8 +9,6 @@ help:
 	@echo "  test-integration  - Run all tests including integration tests"
 	@echo "  test-integration-only - Run only integration tests"
 	@echo "  test-verbose      - Run all tests with verbose output"
-	@echo "  test-comprehensive - Run comprehensive tests only"
-	@echo "  test-persistence  - Run persistence tests only"
 	@echo "  test-coverage     - Run tests with coverage report (excluding integration)"
 	@echo "  test-coverage-all - Run all tests with coverage report (including integration)"
 	@echo "  install           - Install production dependencies"
@@ -43,14 +41,6 @@ test-integration-only:
 test-verbose:
 	@echo "Running all tests with verbose output (excluding integration tests)..."
 	python -m pytest -vvv --tb=long
-
-test-comprehensive:
-	@echo "Running comprehensive worker queue tests..."
-	python -m pytest worker/test_comprehensive.py -v
-
-test-persistence:
-	@echo "Running persistence tests..."
-	python -m pytest worker/test_persistence.py -v
 
 test-coverage:
 	@echo "Running tests with coverage report (excluding integration tests)..."
