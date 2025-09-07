@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Integration test suite for SayAThing TTS service.
 
