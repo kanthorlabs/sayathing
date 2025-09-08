@@ -333,8 +333,7 @@ class WorkerQueue:
                         created_at=row.created_at,
                         updated_at=row.updated_at,
                     )
-                    task = task_model.to_task()
-                    tasks.append(task)
+                    tasks.append(task_model.to_task())
 
                     # Log the action taken
                     if task_model.state == TaskState.DISCARDED.value:  # type: ignore
@@ -586,8 +585,93 @@ class WorkerQueue:
         """
         async with self._get_session() as session:
             result = await session.execute(select(TaskModel).where(TaskModel.id == task_id))
-            task_model = result.scalar_one_or_none()
+            row = result.scalar_one_or_none()
 
-            if task_model:
-                return task_model.to_task()
-            return None
+            return row.to_task() if row and isinstance(row, TaskModel) else None
+
+    async def list_tasks(self, 
+        limit: int = 50,
+        cursor: Optional[int] = None
+        ) -> List[Task]:
+        """
+        List tasks with cursor-based pagination using id column.
+        Note: This method excludes task items for performance reasons.
+        Args:
+            limit: Maximum number of tasks to return (default: 50, max: 100)
+            cursor: Cursor value (id) for pagination
+
+        Returns:
+            List of tasks matching the criteria
+        """
+        # Limit the maximum page size for performance
+        limit = min(limit, 100)
+
+        async with self._get_session() as session:
+            query = select(
+                TaskModel.id,
+                TaskModel.state,
+                TaskModel.schedule_at,
+                TaskModel.attempt_count,
+                TaskModel.attempted_at,
+                TaskModel.attempted_error,
+                TaskModel.finalized_at,
+                TaskModel.created_at,
+                TaskModel.updated_at
+            ).order_by(TaskModel.id).limit(limit)
+
+            if cursor is not None:
+                query = query.where(TaskModel.id > cursor)
+
+            result = await session.execute(query)
+            rows = result.mappings().all()
+            
+            tasks = [TaskModel(**row).to_task(with_items=False) for row in rows]
+            return tasks
+
+    async def list_tasks_by_state(
+        self,
+        state: TaskState,
+        limit: int = 50,
+        cursor: Optional[int] = None
+    ) -> List[Task]:
+        """
+        List tasks by state with cursor-based pagination using schedule_at column.
+        Note: This method excludes task items for performance reasons.
+
+        Args:
+            state: Task state to filter by
+            limit: Maximum number of tasks to return (default: 50, max: 100)
+            cursor: Cursor value (schedule_at timestamp) for pagination
+
+        Returns:
+            List of tasks matching the state, ordered by schedule_at (without items)
+        """
+        # Limit the maximum page size for performance
+        limit = min(limit, 100)
+
+        async with self._get_session() as session:
+            # Select specific columns excluding items for performance
+            query = select(
+                TaskModel.id,
+                TaskModel.state,
+                TaskModel.schedule_at,
+                TaskModel.attempt_count,
+                TaskModel.attempted_at,
+                TaskModel.attempted_error,
+                TaskModel.finalized_at,
+                TaskModel.created_at,
+                TaskModel.updated_at
+            ).where(TaskModel.state == state.value)
+            
+            # Apply cursor for pagination
+            if cursor is not None:
+                query = query.where(TaskModel.schedule_at > cursor)
+            
+            # Order by schedule_at for consistent pagination
+            query = query.order_by(TaskModel.schedule_at).limit(limit)
+
+            result = await session.execute(query)
+            rows = result.mappings().all()
+            
+            tasks = [TaskModel(**row).to_task(with_items=False) for row in rows]
+            return tasks

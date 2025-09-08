@@ -41,11 +41,13 @@ class TaskModel(Base):
         Index("idx_tasks_created", "created_at"),
     )
 
-    def to_task(self) -> Task:
+    def to_task(self, with_items: bool = True) -> Task:
         """Convert SQLAlchemy model to Pydantic Task"""
-        # Parse items JSON
-        items_data = json.loads(self.items) if self.items else []
-        items = [TaskItem.model_validate(item) for item in items_data]
+        # Parse items JSON if with_items else empty list
+        items = []
+        if with_items:
+            items_data = json.loads(self.items) if self.items else []
+            items = [TaskItem.model_validate(item) for item in items_data]
 
         # Parse attempted_error JSON
         attempted_error = json.loads(self.attempted_error) if self.attempted_error else []

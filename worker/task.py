@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -22,6 +22,28 @@ class TaskState(Enum):
     COMPLETED = 100
     # Retryable is the state for tasks that have errored, but will be retried.
     RETRYABLE = 101
+
+    def get_metadata(self) -> Dict[str, Any]:
+        """
+        Returns metadata for the task state including name, value, and description.
+        
+        Returns:
+            Dictionary containing name, value, and description of the state.
+        """
+        descriptions = {
+            TaskState.DISCARDED: "Tasks that have errored too many times and require manual intervention",
+            TaskState.CANCELLED: "Tasks that have been manually cancelled by user request", 
+            TaskState.PENDING: "Tasks waiting for external action before they can be processed",
+            TaskState.PROCESSING: "Tasks that are currently being processed",
+            TaskState.COMPLETED: "Tasks that have successfully completed",
+            TaskState.RETRYABLE: "Tasks that have failed but will be retried automatically",
+        }
+        
+        return {
+            "name": self.name.lower(),
+            "value": self.value,
+            "description": descriptions[self]
+        }
 
 
 class TaskItem(BaseModel):
