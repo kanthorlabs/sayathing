@@ -73,6 +73,7 @@ class Task(BaseModel):
     attempted_error: List[str] = []
     finalized_at: Optional[int] = None
     items: List[TaskItem] = []
+    item_count: int = 0
     created_at: int
     updated_at: int
 

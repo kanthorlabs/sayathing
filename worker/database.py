@@ -32,6 +32,7 @@ class TaskModel(Base):
     attempted_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON array of error messages
     finalized_at: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     items: Mapped[str] = mapped_column(Text, nullable=False)  # JSON serialized TaskItem list
+    item_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[int] = mapped_column(Integer, nullable=False)
     updated_at: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -61,6 +62,7 @@ class TaskModel(Base):
             attempted_error=attempted_error,
             finalized_at=self.finalized_at,
             items=items,
+            item_count=self.item_count,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
@@ -83,6 +85,7 @@ class TaskModel(Base):
             attempted_error=attempted_error_json,
             finalized_at=task.finalized_at,
             items=items_json,
+            item_count=task.item_count,
             created_at=task.created_at,
             updated_at=task.updated_at,
         )

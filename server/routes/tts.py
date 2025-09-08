@@ -110,6 +110,7 @@ async def publish_tts_task(req: Request, body: PublishTasksRequest) -> PublishTa
         state=TaskState.PENDING,
         schedule_at=0,  # will be set by queue
         items=items,
+        item_count=len(items),
         created_at=0,
         updated_at=0,
     )
