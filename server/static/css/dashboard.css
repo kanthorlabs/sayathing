@@ -1,0 +1,425 @@
+/* Dashboard Custom Styles */
+
+/* Tab Navigation */
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    padding-bottom: 1rem;
+}
+
+.tab-button {
+    background: var(--pico-secondary-background);
+    border: 1px solid var(--pico-secondary-border);
+    color: var(--pico-secondary-color);
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tab-button:hover {
+    background: var(--pico-secondary-hover-background);
+    border-color: var(--pico-secondary-hover-border);
+}
+
+.tab-button.active {
+    background: var(--pico-primary-background);
+    border-color: var(--pico-primary-border);
+    color: var(--pico-primary-inverse);
+}
+
+.badge {
+    background: var(--pico-primary-inverse);
+    color: var(--pico-primary-background);
+    border-radius: 50%;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+.tab-button.active .badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--pico-primary-inverse);
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-controls select {
+    min-width: 80px;
+}
+
+.action-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Loading and Error States */
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--pico-muted-color);
+}
+
+.error {
+    background: var(--pico-del-background, #ffe6e6);
+    border: 1px solid var(--pico-del-color, #ff6b6b);
+    color: var(--pico-del-color, #cc0000);
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+/* Table Styles */
+#tasks-table {
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+#tasks-table th {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+#tasks-table td {
+    vertical-align: middle;
+}
+
+.task-id {
+    font-family: var(--pico-font-family-monospace, monospace);
+    font-size: 0.875rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-state {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.task-state.pending { background: #e3f2fd; color: #1976d2; }
+.task-state.processing { background: #fff3e0; color: #f57c00; }
+.task-state.completed { background: #e8f5e8; color: #388e3c; }
+.task-state.retryable { background: #fff8e1; color: #f9a825; }
+.task-state.discarded { background: #ffebee; color: #d32f2f; }
+.task-state.cancelled { background: #f3e5f5; color: #7b1fa2; }
+
+.task-timestamp {
+    font-size: 0.875rem;
+    color: var(--pico-muted-color);
+}
+
+.action-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--pico-muted-color);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+#pagination-info {
+    color: var(--pico-muted-color);
+    font-size: 0.875rem;
+}
+
+/* Modal Styles */
+dialog article {
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--pico-muted-color);
+    float: right;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+}
+
+.close-button:hover {
+    color: var(--pico-color);
+}
+
+.task-detail {
+    margin-bottom: 1.5rem;
+}
+
+.task-detail h4 {
+    margin-bottom: 0.5rem;
+    color: var(--pico-h4-color);
+}
+
+.task-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.task-detail-item {
+    background: var(--pico-card-background-color);
+    padding: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--pico-muted-border-color);
+}
+
+.task-detail-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--pico-muted-color);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.task-items {
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.25rem;
+    padding: 1rem;
+}
+
+.task-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-item-text {
+    background: var(--pico-code-background-color);
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.75rem;
+    font-family: var(--pico-font-family-monospace, monospace);
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.audio-player {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.audio-player audio {
+    flex: 1;
+    min-width: 200px;
+}
+
+.no-audio {
+    color: var(--pico-muted-color);
+    font-style: italic;
+    font-size: 0.875rem;
+}
+
+/* Error list */
+.error-list {
+    background: var(--pico-del-background, #ffe6e6);
+    border: 1px solid var(--pico-del-color, #ff6b6b);
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.error-list ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.error-list li {
+    color: var(--pico-del-color, #cc0000);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .pagination-controls {
+        justify-content: center;
+    }
+    
+    .action-controls {
+        justify-content: center;
+    }
+    
+    .tabs {
+        justify-content: center;
+    }
+    
+    #tasks-table {
+        font-size: 0.875rem;
+    }
+    
+    .task-id {
+        max-width: 80px;
+    }
+    
+    .task-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Enqueue Modal Styles */
+.enqueue-item {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--pico-card-background-color);
+}
+
+.enqueue-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.enqueue-item-header h5 {
+    margin: 0;
+    color: var(--pico-h5-color);
+}
+
+.remove-item-btn {
+    background: var(--pico-del-background, #ffe6e6);
+    border: 1px solid var(--pico-del-color, #ff6b6b);
+    color: var(--pico-del-color, #cc0000);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.remove-item-btn:hover {
+    background: var(--pico-del-color, #ff6b6b);
+    color: white;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: var(--pico-color);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.voice-select {
+    font-family: var(--pico-font-family-monospace, monospace);
+    font-size: 0.875rem;
+}
+
+.metadata-input {
+    font-family: var(--pico-font-family-monospace, monospace);
+    font-size: 0.875rem;
+}
+
+.loading-enqueue {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--pico-muted-color);
+}
+
+.spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--pico-muted-border-color);
+    border-top: 2px solid var(--pico-primary-background);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Form validation styles */
+.form-group.error input,
+.form-group.error textarea,
+.form-group.error select {
+    border-color: var(--pico-del-color, #ff6b6b);
+    background-color: var(--pico-del-background, #ffe6e6);
+}
+
+.error-text {
+    color: var(--pico-del-color, #cc0000);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}

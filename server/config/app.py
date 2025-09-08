@@ -6,6 +6,8 @@ from typing import List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from container import container, initialize_container
@@ -91,5 +93,9 @@ def create_app() -> FastAPI:
     allowed_hosts = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
     if allowed_hosts:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+
+    # Mount static files
+    static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
 
     return app

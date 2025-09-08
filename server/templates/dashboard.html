@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - SayAThing</title>
+    
+    <!-- Pico CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>🎵 SayAThing Task Dashboard</h1>
+            <p>Monitor and manage your text-to-speech processing tasks</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tabs" role="tablist">
+            <button id="tab-all" class="tab-button active" role="tab" aria-selected="true" data-state="">
+                All Tasks <span class="badge" id="count-all">0</span>
+            </button>
+            <!-- Task state tabs will be populated by JavaScript -->
+        </nav>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="pagination-controls">
+                <label for="page-size">Items per page:</label>
+                <select id="page-size">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            
+            <div class="action-controls">
+                <button id="enqueue-btn" class="primary">
+                    ➕ Add New Task
+                </button>
+                <button id="refresh-btn" class="secondary">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="loading" class="loading" aria-live="polite">
+            <p>Loading tasks...</p>
+        </div>
+
+        <!-- Error message -->
+        <div id="error" class="error" style="display: none;" role="alert">
+            <p id="error-message"></p>
+        </div>
+
+        <!-- Tasks Table -->
+        <div id="tasks-container">
+            <table id="tasks-table" role="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>State</th>
+                        <th>Created</th>
+                        <th>Updated</th>
+                        <th>Items</th>
+                        <th>Attempts</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tasks-tbody">
+                    <!-- Tasks will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <!-- Empty state -->
+            <div id="empty-state" style="display: none;" class="empty-state">
+                <p>No tasks found for the selected criteria.</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="pagination">
+            <button id="prev-btn" class="secondary" disabled>← Previous</button>
+            <span id="pagination-info">Page 1</span>
+            <button id="next-btn" class="secondary" disabled>Next →</button>
+        </div>
+    </main>
+
+    <!-- Task Detail Modal -->
+    <dialog id="task-modal">
+        <article>
+            <header>
+                <button aria-label="Close" rel="prev" id="close-modal" class="close-button">×</button>
+                <h3>Task Details</h3>
+            </header>
+            
+            <div id="modal-content">
+                <!-- Task details will be populated by JavaScript -->
+            </div>
+            
+            <footer>
+                <button id="modal-close-btn" class="secondary">Close</button>
+            </footer>
+        </article>
+    </dialog>
+
+    <!-- Enqueue Task Modal -->
+    <dialog id="enqueue-modal">
+        <article>
+            <header>
+                <button aria-label="Close" rel="prev" id="close-enqueue-modal" class="close-button">×</button>
+                <h3>Add New Task</h3>
+            </header>
+            
+            <form id="enqueue-form">
+                <div id="items-container">
+                    <h4>Task Items</h4>
+                    <div id="items-list">
+                        <!-- Initial item will be added by JavaScript -->
+                    </div>
+                    <button type="button" id="add-item-btn" class="secondary outline">
+                        ➕ Add Another Item
+                    </button>
+                </div>
+            </form>
+            
+            <footer>
+                <button id="enqueue-cancel-btn" class="secondary">Cancel</button>
+                <button id="enqueue-submit-btn" type="submit" form="enqueue-form" class="primary">
+                    📤 Enqueue Task
+                </button>
+            </footer>
+        </article>
+    </dialog>
+
+    <!-- JavaScript -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

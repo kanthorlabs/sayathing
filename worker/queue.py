@@ -211,6 +211,7 @@ class WorkerQueue:
                         attempted_error=row.attempted_error,
                         finalized_at=row.finalized_at,
                         items=row.items,
+                        item_count=row.item_count,
                         created_at=row.created_at,
                         updated_at=row.updated_at,
                     )
@@ -330,6 +331,7 @@ class WorkerQueue:
                         attempted_error=row.attempted_error,
                         finalized_at=row.finalized_at,
                         items=row.items,
+                        item_count=row.item_count,
                         created_at=row.created_at,
                         updated_at=row.updated_at,
                     )
@@ -615,6 +617,7 @@ class WorkerQueue:
                 TaskModel.attempted_at,
                 TaskModel.attempted_error,
                 TaskModel.finalized_at,
+                TaskModel.item_count,
                 TaskModel.created_at,
                 TaskModel.updated_at
             ).order_by(TaskModel.id).limit(limit)
@@ -659,6 +662,7 @@ class WorkerQueue:
                 TaskModel.attempted_at,
                 TaskModel.attempted_error,
                 TaskModel.finalized_at,
+                TaskModel.item_count,
                 TaskModel.created_at,
                 TaskModel.updated_at
             ).where(TaskModel.state == state.value)

@@ -107,7 +107,9 @@ class KokoroEngine(TTSEngineInterface):
         try:
             voice_name = voice_id.split(".")[1] if "." in voice_id else voice_id
             generator = self.pipeline(text, voice=voice_name)
-            [result] = list(generator)
+            results = list(generator)
+            print("--------------------------------len(results)", len(results), voice_id)
+            result = results[0]  # Take the first result
 
             buffer = io.BytesIO()
             sf.write(buffer, result.audio, self.sampling_rate, format="WAV")
