@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/tts/voice",
+    "/api/voices",
     response_model=list[Voice],
     tags=["voices"],
     summary="List Available Voices",
@@ -39,7 +39,7 @@ router = APIRouter()
         }
     },
 )
-async def list_voice(
+async def list_voices(
     include_samples: bool = Query(
         default=False,
         description="Whether to include audio samples for each voice. Setting to true will increase response size and time.",
@@ -55,7 +55,7 @@ async def list_voice(
     - **gender**: Voice gender (Male/Female)
     - **sample**: Base64-encoded audio sample (only included if include_samples=true)
 
-    Use the `id` field when making requests to the `/tts` endpoint.
+    Use the `id` field when making requests to the `/api/tts` endpoint.
 
     Args:
         include_samples: Whether to include audio samples for each voice (default: False).

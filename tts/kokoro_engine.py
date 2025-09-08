@@ -4,6 +4,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, Optional
 
+import numpy as np
 import soundfile as sf
 from kokoro import KPipeline
 
@@ -107,12 +108,34 @@ class KokoroEngine(TTSEngineInterface):
         try:
             voice_name = voice_id.split(".")[1] if "." in voice_id else voice_id
             generator = self.pipeline(text, voice=voice_name)
-            results = list(generator)
-            print("--------------------------------len(results)", len(results), voice_id)
-            result = results[0]  # Take the first result
+            
+            # Efficiently handle single or multiple results
+            audio_chunks = []
+            for result in generator:
+                # Convert to numpy array - handle different tensor types
+                audio_data = result.audio
+                if audio_data is None:
+                    continue
+                if hasattr(audio_data, 'numpy'):
+                    audio_array = audio_data.numpy()
+                elif hasattr(audio_data, 'detach'):
+                    audio_array = audio_data.detach().cpu().numpy()
+                else:
+                    audio_array = np.array(audio_data)
+                audio_chunks.append(audio_array)
+            
+            if not audio_chunks:
+                raise AudioGenerationError("No audio data generated")
+            
+            # Concatenate all chunks into final audio
+            if len(audio_chunks) == 1:
+                final_audio = audio_chunks[0]
+            else:
+                final_audio = np.concatenate(audio_chunks, axis=0)
 
+            # Write the final audio as a single WAV file
             buffer = io.BytesIO()
-            sf.write(buffer, result.audio, self.sampling_rate, format="WAV")
+            sf.write(buffer, final_audio, self.sampling_rate, format="WAV")
             buffer.seek(0)
             return buffer.read()
         except Exception as e:

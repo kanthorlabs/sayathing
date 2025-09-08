@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/tts",
+    "/api/tts",
     response_model=TextToSpeechResponse,
     tags=["tts"],
     summary="Convert Text to Speech",
@@ -75,6 +75,20 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
         raise
 
 
+# Legacy endpoint for backward compatibility
+@router.post(
+    "/tts",
+    response_model=TextToSpeechResponse,
+    tags=["tts"],
+    summary="Convert Text to Speech (Legacy)",
+    description="Legacy endpoint - use /api/tts instead",
+    deprecated=True,
+)
+async def text_to_speech_legacy(request: TextToSpeechRequest) -> TextToSpeechResponse:
+    """Legacy endpoint - use /api/tts instead"""
+    return await text_to_speech(request)
+
+
 class PublishTasksRequest(BaseModel):
     items: List[TextToSpeechRequest] = Field(..., min_length=1, description="List of request items to enqueue")
 
@@ -89,17 +103,26 @@ class TaskListResponse(BaseModel):
 
 
 @router.post(
-    "/tts/queue/task",
+    "/api/tasks",
     response_model=PublishTasksResponse,
-    tags=["tts"],
-    summary="Publish a TTS task to queue with multiple items",
-    description="Enqueue a new TTS task containing multiple text-to-speech requests",
+    tags=["tasks"],
+    summary="Create a new TTS task",
+    description="Create a new TTS task containing multiple text-to-speech requests",
     responses={
-        200: {"description": "Tasks enqueued"},
+        200: {"description": "Task created successfully"},
         400: {"description": "Invalid request"},
     },
 )
-async def publish_tts_task(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
+async def create_task(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
+    """
+    Create a new TTS task with multiple items.
+    
+    **Parameters:**
+    - **items**: List of text-to-speech requests to include in the task
+    
+    **Returns:**
+    - **task_ids**: List of created task IDs
+    """
     items: List[TaskItem] = [TaskItem(request=ti, response_url="") for ti in body.items]
 
     if not items:
@@ -120,6 +143,20 @@ async def publish_tts_task(req: Request, body: PublishTasksRequest) -> PublishTa
     return PublishTasksResponse(task_ids=task_ids)
 
 
+# Legacy endpoint for backward compatibility
+@router.post(
+    "/tts/queue/task",
+    response_model=PublishTasksResponse,
+    tags=["tasks"],
+    summary="Publish a TTS task to queue with multiple items (Legacy)",
+    description="Legacy endpoint - use /api/tasks instead",
+    deprecated=True,
+)
+async def publish_tts_task_legacy(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
+    """Legacy endpoint - use /api/tasks instead"""
+    return await create_task(req, body)
+
+
 class TaskStateInfo(BaseModel):
     name: str = Field(..., description="The state name (e.g., 'PENDING')")
     value: int = Field(..., description="The numeric value of the state")
@@ -129,16 +166,16 @@ class AllStatesResponse(BaseModel):
     states: List[TaskStateInfo]
 
 @router.get(
-    "/tts/queue/state",
+    "/api/task-states",
     response_model=AllStatesResponse,
-    tags=["tts"],
+    tags=["tasks"],
     summary="List all available task states",
     description="Retrieve information about all available task states",
     responses={
         200: {"description": "List of all available task states"},
     },
 )
-async def list_all_task_states() -> AllStatesResponse:
+async def list_task_states() -> AllStatesResponse:
     """
     Get information about all available task states.
     
@@ -155,11 +192,11 @@ async def list_all_task_states() -> AllStatesResponse:
 
 
 @router.get(
-    "/tts/queue/task",
+    "/api/tasks",
     response_model=TaskListResponse,
-    tags=["tts"],
+    tags=["tasks"],
     summary="List tasks",
-    description="Retrieve tasks filtered with cursor-based pagination",
+    description="Retrieve tasks with cursor-based pagination",
     responses={
         200: {"description": "List of tasks"},
         400: {"description": "Invalid query parameter"},
@@ -168,87 +205,64 @@ async def list_all_task_states() -> AllStatesResponse:
 async def list_tasks(
     req: Request,
     limit: int = Query(default=50, ge=1, le=100, description="Number of tasks to return (max 100)"),
-    cursor: Optional[int] = Query(default=None, description="Cursor for pagination (id)")
+    cursor: Optional[int] = Query(default=None, description="Cursor for pagination (schedule_at timestamp)"),
+    state: Optional[str] = Query(default=None, description="Filter by task state")
 ) -> TaskListResponse:
     """
-    List tasks with cursor-based pagination.
-    """
-    worker_queue = req.app.state.worker_queue  # type: ignore[attr-defined]
-    tasks = await worker_queue.list_tasks(limit, cursor)
-
-    # Calculate next cursor from the last task's id
-    next_cursor = None
-    if tasks and len(tasks) == limit:
-        next_cursor = tasks[-1].id
-
-    return TaskListResponse(tasks=tasks, next_cursor=next_cursor)
-
-
-@router.get(
-    "/tts/queue/{state}/task",
-    response_model=TaskListResponse,
-    tags=["tts"],
-    summary="List tasks by state",
-    description="Retrieve tasks filtered by state with cursor-based pagination",
-    responses={
-        200: {"description": "List of tasks"},
-        400: {"description": "Invalid state parameter"},
-        404: {"description": "Invalid state"},
-    },
-)
-async def list_tasks_by_state(
-    req: Request,
-    state: str,
-    limit: int = Query(default=50, ge=1, le=100, description="Number of tasks to return (max 100)"),
-    cursor: Optional[int] = Query(default=None, description="Cursor for pagination (schedule_at timestamp)")
-) -> TaskListResponse:
-    """
-    List tasks by state with cursor-based pagination.
+    List tasks with optional state filtering and cursor-based pagination.
     
     **Parameters:**
-    - **state**: Task state to filter by. Valid values: 
+    - **limit**: Number of tasks to return (1-100, default: 50)
+    - **cursor**: Pagination cursor (schedule_at timestamp)
+    - **state**: Optional state filter. Valid values:
       - DISCARDED (-101): Tasks that have errored too many times
       - CANCELLED (-100): Manually cancelled tasks  
       - PENDING (0): Tasks waiting for external action
       - PROCESSING (1): Currently running tasks
       - COMPLETED (100): Successfully completed tasks
       - RETRYABLE (101): Failed tasks that will be retried
-    - **limit**: Number of tasks to return (1-100, default: 50)
-    - **cursor**: Pagination cursor (schedule_at timestamp)
     
     **Returns:**
-    - **tasks**: List of tasks matching the state
+    - **tasks**: List of tasks
     - **next_cursor**: Cursor for next page (null if no more pages)
     """
-    # Convert state string to TaskState enum
-    try:
-        # Handle both numeric and string values
-        if state.isdigit() or (state.startswith('-') and state[1:].isdigit()):
-            task_state = TaskState(int(state))
-        else:
-            task_state = TaskState[state.upper()]
-    except (ValueError, KeyError):
-        valid_states = [f"{s.name} ({s.value})" for s in TaskState]
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Invalid state '{state}'. Valid states: {', '.join(valid_states)}"
-        )
-    
     worker_queue = req.app.state.worker_queue  # type: ignore[attr-defined]
-    tasks = await worker_queue.list_tasks_by_state(task_state, limit, cursor)
     
-    # Calculate next cursor from the last task's schedule_at
+    if state:
+        # Filter by state
+        try:
+            # Handle both numeric and string values
+            if state.isdigit() or (state.startswith('-') and state[1:].isdigit()):
+                task_state = TaskState(int(state))
+            else:
+                task_state = TaskState[state.upper()]
+        except (ValueError, KeyError):
+            valid_states = [f"{s.name} ({s.value})" for s in TaskState]
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid state '{state}'. Valid states: {', '.join(valid_states)}"
+            )
+        
+        tasks = await worker_queue.list_tasks_by_state(task_state, limit, cursor)
+    else:
+        # List all tasks
+        tasks = await worker_queue.list_tasks(limit, cursor)
+
+    # Calculate next cursor from the last task
     next_cursor = None
     if tasks and len(tasks) == limit:
-        next_cursor = tasks[-1].schedule_at
-    
+        if state:
+            next_cursor = tasks[-1].schedule_at
+        else:
+            next_cursor = tasks[-1].schedule_at
+
     return TaskListResponse(tasks=tasks, next_cursor=next_cursor)
 
 
 @router.get(
-    "/tts/queue/task/{task_id}",
+    "/api/tasks/{task_id}",
     response_model=Task,
-    tags=["tts"],
+    tags=["tasks"],
     summary="Get task details",
     description="Retrieve detailed information about a specific task",
     responses={
@@ -256,7 +270,7 @@ async def list_tasks_by_state(
         404: {"description": "Task not found"},
     },
 )
-async def get_task_details(req: Request, task_id: str) -> Task:
+async def get_task(req: Request, task_id: str) -> Task:
     """
     Get detailed information about a specific task.
     

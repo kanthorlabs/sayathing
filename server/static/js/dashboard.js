@@ -130,7 +130,7 @@ class TaskDashboard {
     
     async loadTaskStates() {
         try {
-            const response = await fetch('/tts/queue/state');
+            const response = await fetch('/api/task-states');
             if (!response.ok) throw new Error('Failed to load task states');
             
             const data = await response.json();
@@ -143,7 +143,7 @@ class TaskDashboard {
     
     async loadVoices() {
         try {
-            const response = await fetch('/ui/api/voices');
+            const response = await fetch('/api/voices');
             if (!response.ok) throw new Error('Failed to load voices');
             
             this.voices = await response.json();
@@ -218,7 +218,7 @@ class TaskDashboard {
                 params.append('cursor', this.currentCursor.toString());
             }
             
-            const response = await fetch(`/ui/api/tasks?${params}`);
+            const response = await fetch(`/api/tasks?${params}`);
             if (!response.ok) throw new Error('Failed to load tasks');
             
             const data = await response.json();
@@ -240,7 +240,7 @@ class TaskDashboard {
                 const params = new URLSearchParams({ limit: '1' });
                 if (state) params.append('state', state);
                 
-                const response = await fetch(`/ui/api/tasks?${params}`);
+                const response = await fetch(`/api/tasks?${params}`);
                 if (!response.ok) return { state, count: 0 };
                 
                 const data = await response.json();
@@ -343,7 +343,7 @@ class TaskDashboard {
         try {
             this.showLoading();
             
-            const response = await fetch(`/ui/api/tasks/${taskId}`);
+            const response = await fetch(`/api/tasks/${taskId}`);
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Task not found');
@@ -609,7 +609,7 @@ class TaskDashboard {
             }
             
             // Submit to API
-            const response = await fetch('/ui/api/enqueue', {
+            const response = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -625,7 +625,8 @@ class TaskDashboard {
             const result = await response.json();
             
             // Show success message
-            this.showError(`✅ ${result.message}. Task ID: ${result.task_ids[0]}`);
+            const message = `Successfully created task with ${items.length} items`;
+            this.showError(`✅ ${message}. Task ID: ${result.task_ids[0]}`);
             this.errorEl.style.backgroundColor = '#e8f5e8';
             this.errorEl.style.borderColor = '#388e3c';
             this.errorEl.style.color = '#388e3c';

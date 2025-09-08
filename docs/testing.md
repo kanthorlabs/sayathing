@@ -47,27 +47,6 @@ make test-all
 make test
 ```
 
-### Individual Test Suites
-```bash
-# Run comprehensive tests only
-make test-comprehensive
-
-# Run persistence tests only
-make test-persistence
-```
-
-### Specific Test Cases
-```bash
-# Test enqueue/dequeue functionality
-make test-enqueue
-
-# Test retry mechanism
-make test-retry
-
-# Test state transitions
-make test-states
-```
-
 ### Coverage and Reports
 ```bash
 # Generate coverage report (creates htmlcov/ directory)
@@ -85,22 +64,6 @@ make test-pattern PATTERN="retry"
 # Run tests in parallel (requires pytest-xdist)
 make test-parallel
 ```
-
-## Test Features
-
-### Comprehensive Test Suite (`test_comprehensive.py`)
-- **Enqueue/Dequeue**: Basic queue operations
-- **State Transitions**: Task lifecycle management
-- **Retry Mechanism**: Exponential backoff and retry logic
-- **Visibility Timeout**: Handling of stale processing tasks
-- **Max Attempts**: Auto-discard after maximum retry attempts
-- **Cancel/Resume**: Task cancellation and resumption
-- **Error Handling**: Comprehensive error case coverage
-
-### Persistence Test Suite (`test_persistence.py`)
-- **Database Persistence**: Verifies tasks persist across queue restarts
-- **Temporary Directories**: Uses system temp directories for isolation
-- **Cross-Session Validation**: Ensures data integrity between sessions
 
 ## Test Configuration
 

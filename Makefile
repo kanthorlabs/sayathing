@@ -99,16 +99,6 @@ clean:
 	find . -name "*.db" -delete 2>/dev/null || true
 	@echo "Cleanup complete!"
 
-# Quick test targets for specific scenarios
-test-enqueue:
-	python -m pytest worker/test_comprehensive.py::test_enqueue_dequeue -v
-
-test-retry:
-	python -m pytest worker/test_comprehensive.py::test_retry_mechanism -v
-
-test-states:
-	python -m pytest worker/test_comprehensive.py::test_state_transitions -v
-
 # Run tests in parallel (if pytest-xdist is installed)
 test-parallel:
 	@echo "Running tests in parallel..."
@@ -128,6 +118,7 @@ test-report:
 # Run dev server (for manual testing)
 dev:
 	@echo "Starting development server with hot reload..."
+	rm -rf data/queue.db
 	uv run python main-dev.py
 
 # Run in Podman container
