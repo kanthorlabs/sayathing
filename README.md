@@ -9,6 +9,31 @@
 
 SayAThing is a production-ready text-to-speech (TTS) service that converts text into natural-sounding speech using advanced AI models. Built with FastAPI and powered by the Kokoro TTS engine, it provides a robust API for developers to integrate high-quality speech synthesis into their applications.
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/img/task-list.png" alt="Task List" width="100%">
+      <p align="center"><em>Task List Dashboard</em></p>
+    </td>
+    <td width="50%">
+      <img src="docs/img/task-enqueue.png" alt="Task Enqueue" width="100%">
+      <p align="center"><em>Task Enqueue Interface</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/img/generate-speech.png" alt="Generate Speech" width="100%">
+      <p align="center"><em>Speech Generation Form</em></p>
+    </td>
+    <td width="50%">
+      <img src="docs/img/generate-speech-results.png" alt="Generate Speech Results" width="100%">
+      <p align="center"><em>Generation Results</em></p>
+    </td>
+  </tr>
+</table>
+
 ## ✨ Features
 
 - **🎯 RESTful API**: Clean, well-documented API endpoints for text-to-speech conversion
