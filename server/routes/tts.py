@@ -75,20 +75,6 @@ async def text_to_speech(request: TextToSpeechRequest) -> TextToSpeechResponse:
         raise
 
 
-# Legacy endpoint for backward compatibility
-@router.post(
-    "/tts",
-    response_model=TextToSpeechResponse,
-    tags=["tts"],
-    summary="Convert Text to Speech (Legacy)",
-    description="Legacy endpoint - use /api/tts instead",
-    deprecated=True,
-)
-async def text_to_speech_legacy(request: TextToSpeechRequest) -> TextToSpeechResponse:
-    """Legacy endpoint - use /api/tts instead"""
-    return await text_to_speech(request)
-
-
 class PublishTasksRequest(BaseModel):
     items: List[TextToSpeechRequest] = Field(..., min_length=1, description="List of request items to enqueue")
 
@@ -141,20 +127,6 @@ async def create_task(req: Request, body: PublishTasksRequest) -> PublishTasksRe
     worker_queue = req.app.state.worker_queue  # type: ignore[attr-defined]
     task_ids = await worker_queue.enqueue([task])
     return PublishTasksResponse(task_ids=task_ids)
-
-
-# Legacy endpoint for backward compatibility
-@router.post(
-    "/tts/queue/task",
-    response_model=PublishTasksResponse,
-    tags=["tasks"],
-    summary="Publish a TTS task to queue with multiple items (Legacy)",
-    description="Legacy endpoint - use /api/tasks instead",
-    deprecated=True,
-)
-async def publish_tts_task_legacy(req: Request, body: PublishTasksRequest) -> PublishTasksResponse:
-    """Legacy endpoint - use /api/tasks instead"""
-    return await create_task(req, body)
 
 
 class TaskStateInfo(BaseModel):

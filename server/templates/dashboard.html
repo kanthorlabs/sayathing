@@ -18,14 +18,6 @@
             <p>Monitor and manage your text-to-speech processing tasks</p>
         </header>
 
-        <!-- Tab Navigation -->
-        <nav class="tabs" role="tablist">
-            <button id="tab-all" class="tab-button active" role="tab" aria-selected="true" data-state="">
-                All Tasks <span class="badge" id="count-all">0</span>
-            </button>
-            <!-- Task state tabs will be populated by JavaScript -->
-        </nav>
-
         <!-- Controls -->
         <div class="controls">
             <div class="pagination-controls">
@@ -39,7 +31,10 @@
             </div>
             
             <div class="action-controls">
-                <button id="enqueue-btn" class="primary">
+                <button id="create-speech-btn" class="primary">
+                    🎤 Create Speech
+                </button>
+                <button id="enqueue-btn" class="secondary">
                     ➕ Add New Task
                 </button>
                 <button id="refresh-btn" class="secondary">
@@ -47,6 +42,14 @@
                 </button>
             </div>
         </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tabs" role="tablist">
+            <button id="tab-all" class="tab-button active" role="tab" aria-selected="true" data-state="">
+                All Tasks <span class="badge" id="count-all">0</span>
+            </button>
+            <!-- Task state tabs will be populated by JavaScript -->
+        </nav>
 
         <!-- Loading indicator -->
         <div id="loading" class="loading" aria-live="polite">
@@ -95,7 +98,7 @@
     <dialog id="task-modal">
         <article>
             <header>
-                <button aria-label="Close" rel="prev" id="close-modal" class="close-button">×</button>
+                <button aria-label="Close" rel="prev" id="close-modal" class="close-button"></button>
                 <h3>Task Details</h3>
             </header>
             
@@ -109,11 +112,77 @@
         </article>
     </dialog>
 
+    <!-- Create Speech Modal -->
+    <dialog id="create-speech-modal">
+        <article>
+            <header>
+                <button aria-label="Close" rel="prev" id="close-create-speech-modal" class="close-button"></button>
+                <h3>Create Speech</h3>
+            </header>
+            
+            <form id="create-speech-form">
+                <div class="grid">
+                    <label>
+                        Text to Speech
+                        <textarea id="speech-text" name="text" placeholder="Enter the text you want to convert to speech..." required rows="4"></textarea>
+                    </label>
+                </div>
+                
+                <div class="grid">
+                    <label>
+                        Voice
+                        <select id="speech-voice" name="voice_id" required>
+                            <option value="">Select a voice...</option>
+                            <!-- Voices will be populated by JavaScript -->
+                        </select>
+                    </label>
+                </div>
+            </form>
+            
+            <!-- Loading state -->
+            <div id="speech-loading" class="loading" style="display: none;" aria-live="polite">
+                <p>🎵 Generating speech... Please wait.</p>
+            </div>
+            
+            <!-- Audio player container -->
+            <div id="speech-result" style="display: none;">
+                <h4>Generated Speech</h4>
+                <div class="audio-container">
+                    <audio id="speech-audio" controls style="width: 100%;">
+                        Your browser does not support the audio element.
+                    </audio>
+                    <button id="speech-download-btn" type="button" class="secondary outline" style="margin-top: 0.5rem;">
+                        📥 Download MP3
+                    </button>
+                </div>
+                <details>
+                    <summary>Request Details</summary>
+                    <pre id="speech-request-details"></pre>
+                </details>
+            </div>
+            
+            <!-- Error message -->
+            <div id="speech-error" class="error" style="display: none;" role="alert">
+                <p id="speech-error-message"></p>
+            </div>
+            
+            <footer>
+                <button id="speech-cancel-btn" class="secondary">Cancel</button>
+                <button id="speech-submit-btn" type="submit" form="create-speech-form" class="primary">
+                    🎤 Generate Speech
+                </button>
+                <button id="speech-reset-btn" type="button" class="secondary" style="display: none;">
+                    🔄 Create Another
+                </button>
+            </footer>
+        </article>
+    </dialog>
+
     <!-- Enqueue Task Modal -->
     <dialog id="enqueue-modal">
         <article>
             <header>
-                <button aria-label="Close" rel="prev" id="close-enqueue-modal" class="close-button">×</button>
+                <button aria-label="Close" rel="prev" id="close-enqueue-modal" class="close-button"></button>
                 <h3>Add New Task</h3>
             </header>
             

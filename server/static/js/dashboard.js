@@ -12,6 +12,7 @@ class TaskDashboard {
         this.taskCounts = {};
         this.voices = [];
         this.enqueueItemCounter = 0;
+        this.currentAudioUrl = null; // Track current audio URL for cleanup
         
         this.initializeElements();
         this.attachEventListeners();
@@ -33,6 +34,7 @@ class TaskDashboard {
         this.pageSizeSelect = document.getElementById('page-size');
         this.refreshBtn = document.getElementById('refresh-btn');
         this.enqueueBtn = document.getElementById('enqueue-btn');
+        this.createSpeechBtn = document.getElementById('create-speech-btn');
         
         // Pagination
         this.prevBtn = document.getElementById('prev-btn');
@@ -53,6 +55,23 @@ class TaskDashboard {
         this.enqueueCancelBtn = document.getElementById('enqueue-cancel-btn');
         this.enqueueSubmitBtn = document.getElementById('enqueue-submit-btn');
         this.closeEnqueueModalBtn = document.getElementById('close-enqueue-modal');
+        
+        // Create Speech Modal
+        this.createSpeechModal = document.getElementById('create-speech-modal');
+        this.createSpeechForm = document.getElementById('create-speech-form');
+        this.speechTextArea = document.getElementById('speech-text');
+        this.speechVoiceSelect = document.getElementById('speech-voice');
+        this.speechLoadingEl = document.getElementById('speech-loading');
+        this.speechResultEl = document.getElementById('speech-result');
+        this.speechAudio = document.getElementById('speech-audio');
+        this.speechDownloadBtn = document.getElementById('speech-download-btn');
+        this.speechRequestDetails = document.getElementById('speech-request-details');
+        this.speechErrorEl = document.getElementById('speech-error');
+        this.speechErrorMessage = document.getElementById('speech-error-message');
+        this.speechCancelBtn = document.getElementById('speech-cancel-btn');
+        this.speechSubmitBtn = document.getElementById('speech-submit-btn');
+        this.speechResetBtn = document.getElementById('speech-reset-btn');
+        this.closeSpeechModalBtn = document.getElementById('close-create-speech-modal');
     }
     
     attachEventListeners() {
@@ -73,6 +92,9 @@ class TaskDashboard {
         // Enqueue button
         this.enqueueBtn.addEventListener('click', () => this.showEnqueueModal());
         
+        // Create Speech button
+        this.createSpeechBtn.addEventListener('click', () => this.showCreateSpeechModal());
+        
         // Pagination
         this.prevBtn.addEventListener('click', () => this.goToPreviousPage());
         this.nextBtn.addEventListener('click', () => this.goToNextPage());
@@ -87,6 +109,13 @@ class TaskDashboard {
         this.addItemBtn.addEventListener('click', () => this.addEnqueueItem());
         this.enqueueForm.addEventListener('submit', (e) => this.handleEnqueueSubmit(e));
         
+        // Create Speech modal handlers
+        this.closeSpeechModalBtn.addEventListener('click', () => this.closeCreateSpeechModal());
+        this.speechCancelBtn.addEventListener('click', () => this.closeCreateSpeechModal());
+        this.speechResetBtn.addEventListener('click', () => this.resetCreateSpeechModal());
+        this.speechDownloadBtn.addEventListener('click', () => this.downloadGeneratedAudio());
+        this.createSpeechForm.addEventListener('submit', (e) => this.handleCreateSpeechSubmit(e));
+        
         // Close modals when clicking outside
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
@@ -100,10 +129,22 @@ class TaskDashboard {
             }
         });
         
+        this.createSpeechModal.addEventListener('click', (e) => {
+            if (e.target === this.createSpeechModal) {
+                this.closeCreateSpeechModal();
+            }
+        });
+        
         // ESC key to close modal
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.open) {
-                this.closeModal();
+            if (e.key === 'Escape') {
+                if (this.modal.open) {
+                    this.closeModal();
+                } else if (this.enqueueModal.open) {
+                    this.closeEnqueueModal();
+                } else if (this.createSpeechModal.open) {
+                    this.closeCreateSpeechModal();
+                }
             }
         });
     }
@@ -434,14 +475,21 @@ class TaskDashboard {
                 `;
                 
                 if (item.response_url && item.response_url.trim()) {
+                    const audioId = `audio-${task.id}-${index}`;
+                    const downloadId = `download-${task.id}-${index}`;
                     modalHTML += `
                         <div class="audio-player">
                             <strong>Audio:</strong>
-                            <audio controls preload="none">
-                                <source src="${this.escapeHtml(item.response_url)}" type="audio/wav">
-                                <source src="${this.escapeHtml(item.response_url)}" type="audio/mpeg">
-                                Your browser does not support the audio element.
-                            </audio>
+                            <div class="audio-container">
+                                <audio id="${audioId}" controls preload="none" style="width: 100%;">
+                                    <source src="${this.escapeHtml(item.response_url)}" type="audio/wav">
+                                    <source src="${this.escapeHtml(item.response_url)}" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <button id="${downloadId}" type="button" class="secondary outline" style="margin-top: 0.5rem; font-size: 0.875rem;" onclick="dashboard.downloadTaskAudio('${this.escapeHtml(item.response_url)}', '${task.id}_${index}')">
+                                    📥 Download MP3
+                                </button>
+                            </div>
                         </div>
                     `;
                 } else {
@@ -702,6 +750,188 @@ class TaskDashboard {
             "'": '&#039;'
         };
         return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    
+    // Create Speech Modal Methods
+    showCreateSpeechModal() {
+        this.resetCreateSpeechModal();
+        this.populateVoicesInSpeechModal();
+        this.createSpeechModal.showModal();
+    }
+    
+    closeCreateSpeechModal() {
+        // Stop audio if playing
+        if (this.speechAudio && !this.speechAudio.paused) {
+            this.speechAudio.pause();
+            this.speechAudio.currentTime = 0;
+        }
+        
+        this.createSpeechModal.close();
+    }
+    
+    resetCreateSpeechModal() {
+        // Reset form
+        this.createSpeechForm.reset();
+        
+        // Stop and clear audio
+        if (this.speechAudio && !this.speechAudio.paused) {
+            this.speechAudio.pause();
+            this.speechAudio.currentTime = 0;
+        }
+        this.speechAudio.src = '';
+        
+        // Revoke previous audio URL to prevent memory leaks
+        if (this.currentAudioUrl) {
+            URL.revokeObjectURL(this.currentAudioUrl);
+            this.currentAudioUrl = null;
+        }
+        
+        // Hide all states
+        this.speechLoadingEl.style.display = 'none';
+        this.speechResultEl.style.display = 'none';
+        this.speechErrorEl.style.display = 'none';
+        
+        // Reset buttons
+        this.speechSubmitBtn.style.display = '';
+        this.speechResetBtn.style.display = 'none';
+        this.speechSubmitBtn.disabled = false;
+        
+        // Clear request details
+        this.speechRequestDetails.textContent = '';
+    }
+    
+    populateVoicesInSpeechModal() {
+        // Clear existing options except the first one
+        const defaultOption = this.speechVoiceSelect.querySelector('option[value=""]');
+        this.speechVoiceSelect.innerHTML = '';
+        this.speechVoiceSelect.appendChild(defaultOption);
+        
+        // Add voice options
+        this.voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.id;
+            option.textContent = `${voice.name} (${voice.gender}, ${voice.language})`;
+            this.speechVoiceSelect.appendChild(option);
+        });
+    }
+    
+    async handleCreateSpeechSubmit(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(this.createSpeechForm);
+        const text = formData.get('text');
+        const voice_id = formData.get('voice_id');
+        
+        if (!text || !voice_id) {
+            this.showSpeechError('Please fill in all required fields.');
+            return;
+        }
+        
+        // Hide error and show loading
+        this.speechErrorEl.style.display = 'none';
+        this.speechResultEl.style.display = 'none';
+        this.speechLoadingEl.style.display = 'block';
+        this.speechSubmitBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/tts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    voice_id: voice_id,
+                    metadata: {}
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `Server error: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            // Hide loading and show result
+            this.speechLoadingEl.style.display = 'none';
+            this.showSpeechResult(result);
+            
+        } catch (error) {
+            console.error('Error creating speech:', error);
+            this.speechLoadingEl.style.display = 'none';
+            this.showSpeechError(`Failed to generate speech: ${error.message}`);
+            this.speechSubmitBtn.disabled = false;
+        }
+    }
+    
+    showSpeechResult(result) {
+        // Revoke previous audio URL if exists
+        if (this.currentAudioUrl) {
+            URL.revokeObjectURL(this.currentAudioUrl);
+        }
+        
+        // Create audio blob from base64
+        const audioData = result.audio;
+        const audioBlob = this.base64ToBlob(audioData, 'audio/wav');
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Track the new URL for cleanup
+        this.currentAudioUrl = audioUrl;
+        
+        // Set audio source
+        this.speechAudio.src = audioUrl;
+        
+        // Show request details
+        this.speechRequestDetails.textContent = JSON.stringify(result.request, null, 2);
+        
+        // Show result container
+        this.speechResultEl.style.display = 'block';
+        
+        // Update buttons
+        this.speechSubmitBtn.style.display = 'none';
+        this.speechResetBtn.style.display = '';
+    }
+    
+    showSpeechError(message) {
+        this.speechErrorMessage.textContent = message;
+        this.speechErrorEl.style.display = 'block';
+    }
+    
+    downloadGeneratedAudio() {
+        if (this.currentAudioUrl) {
+            // Generate filename with current date in YYYYMMDD format
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const filename = `sayathing_${year}${month}${day}.wav`;
+            
+            const link = document.createElement('a');
+            link.href = this.currentAudioUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+    
+    downloadTaskAudio(audioUrl, filename) {
+        const link = document.createElement('a');
+        link.href = audioUrl;
+        link.download = `${filename}.mp3`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    base64ToBlob(base64, mimeType) {
+        const bytes = atob(base64);
+        const array = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) {
+            array[i] = bytes.charCodeAt(i);
+        }
+        return new Blob([array], { type: mimeType });
     }
 }
 

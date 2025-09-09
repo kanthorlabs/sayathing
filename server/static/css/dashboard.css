@@ -263,6 +263,17 @@ dialog article {
     min-width: 200px;
 }
 
+.audio-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.audio-container audio {
+    width: 100%;
+}
+
 .no-audio {
     color: var(--pico-muted-color);
     font-style: italic;
@@ -423,3 +434,53 @@ dialog article {
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
+
+footer > button[class="primary"] {
+    width: auto;
+}
+
+/* Speech Modal Styles */
+#speech-result {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.25rem;
+    background: var(--pico-background-color);
+}
+
+#speech-result h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--pico-primary-background);
+}
+
+#speech-audio {
+    margin-bottom: 1rem;
+}
+
+#speech-request-details {
+    background: var(--pico-code-background-color);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#speech-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--pico-primary-background);
+}
+
+#speech-loading p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.create-speech-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+ 

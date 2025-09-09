@@ -13,7 +13,7 @@ class Config:
     TTS_THREAD_POOL_MAX_WORKERS: int = int(os.getenv("TTS_THREAD_POOL_MAX_WORKERS", "4"))
 
     # Timeout settings
-    TTS_GENERATION_TIMEOUT: float = float(os.getenv("TTS_GENERATION_TIMEOUT", "30.0"))
+    TTS_GENERATION_TIMEOUT: float = float(os.getenv("TTS_GENERATION_TIMEOUT", "300.0"))
     VOICE_PRELOAD_TIMEOUT: float = float(os.getenv("VOICE_PRELOAD_TIMEOUT", "120.0"))
 
     # Batch processing settings
