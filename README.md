@@ -32,6 +32,12 @@ SayAThing is a production-ready text-to-speech (TTS) service that converts text 
       <p align="center"><em>Generation Results</em></p>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/img/openapi-docs.png" alt="OpenAPI Docs" width="100%">
+      <p align="center"><em>OpenAPI Docs</em></p>
+    </td>
+  </tr>
 </table>
 
 ## ✨ Features
